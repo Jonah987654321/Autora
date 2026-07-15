@@ -55,7 +55,7 @@ export function AppSidebar() {
       icon: FolderOpen,
     },
     {
-      title: t("sidebar.settings"),
+      title: t("sidebar.archive"),
       url: "/archive",
       icon: Archive,
     },
