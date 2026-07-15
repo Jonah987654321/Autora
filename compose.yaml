@@ -1,0 +1,31 @@
+services:
+  mongodb:
+    image: mongo:latest
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ADMIN_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE_NAME}
+
+      # Pass through for init script
+      MONGO_USER_NAME: ${MONGO_USER_NAME}
+      MONGO_USER_PWD: ${MONGO_USER_PWD}
+    volumes:
+      # Persistent data
+      - mongodb_data:/data/db
+      # Init script
+      - ./docker/mongodb/init.js:/docker-entrypoint-initdb.d/init.js:ro
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - 8080:8080
+    environment:
+      - MONGO_URI=mongodb://${MONGO_USER_NAME}:${MONGO_USER_PWD}@mongodb:27017/${MONGO_DATABASE_NAME}
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+  
+volumes:
+  mongodb_data:

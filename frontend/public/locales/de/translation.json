@@ -12,6 +12,7 @@
   },
   "dashboard": {
     "dailySchedule": "Tagesplan",
+    "dailyScheduleModify": "Anpassen",
     "courses": "Module",
     "calendar": "Kalendar",
     "calendarNewEntry": "Neuer Eintrag",

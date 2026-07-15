@@ -12,8 +12,9 @@
   },
   "dashboard": {
     "dailySchedule": "Daily Schedule",
+    "dailyScheduleModify": "Modify",
     "courses": "Courses",
-    "calendar": "Kalendar",
+    "calendar": "Calendar",
     "calendarNewEntry": "New Entry",
     "toDoList": "To-Do List",
     "toDoListNewEntry": "New To-Do"
