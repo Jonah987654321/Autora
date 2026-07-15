@@ -1,0 +1,21 @@
+{
+  "sidebar": {
+    "navigation": "Navigation",
+    "dashboard": "Dashboard",
+    "timeManagement": "Zeitplanung",
+    "lectureNotes": "Vorlesungsmitschriften",
+    "flashcards": "Karteikarten",
+    "files": "Dateien",
+    "archive": "Archiv",
+    "settings": "Einstellungen",
+    "recentLectures": "Letzte Vorlesungen"
+  },
+  "dashboard": {
+    "dailySchedule": "Tagesplan",
+    "courses": "Module",
+    "calendar": "Kalendar",
+    "calendarNewEntry": "Neuer Eintrag",
+    "toDoList": "To-Do Liste",
+    "toDoListNewEntry": "Neues To-Do"
+  }
+}

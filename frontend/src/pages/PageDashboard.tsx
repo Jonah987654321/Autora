@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CalendarPlus, CirclePlus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function PageDashboard() {
+  const { t } = useTranslation();
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Willkommen, Jonah</h1>
@@ -13,7 +16,7 @@ export default function PageDashboard() {
         <div>
           <Card className="bg-muted rounded-xl">
             <CardHeader>
-              <CardTitle>Tagesplan</CardTitle>
+              <CardTitle>{t("dashboard.dailySchedule")}</CardTitle>
             </CardHeader>
             <CardContent>
             </CardContent>
@@ -22,7 +25,7 @@ export default function PageDashboard() {
         <div>
           <Card className="bg-muted rounded-xl">
             <CardHeader>
-              <CardTitle>Module</CardTitle>
+              <CardTitle>{t("dashboard.courses")}</CardTitle>
             </CardHeader>
             <CardContent>
             </CardContent>
@@ -31,7 +34,7 @@ export default function PageDashboard() {
         <div>
           <Card className="bg-muted rounded-xl">
             <CardHeader>
-              <CardTitle>To be filled</CardTitle>
+              <CardTitle>N/A</CardTitle>
             </CardHeader>
             <CardContent>
             </CardContent>
@@ -41,9 +44,9 @@ export default function PageDashboard() {
         <div className="md:col-span-2">
           <Card className="bg-muted rounded-xl">
             <CardHeader>
-              <CardTitle>Kalendar</CardTitle>
+              <CardTitle>{t("dashboard.calendar")}</CardTitle>
               <CardAction>
-                <Button><CalendarPlus /> Neuer Eintrag</Button>
+                <Button><CalendarPlus /> {t("dashboard.calendarNewEntry")}</Button>
               </CardAction>
             </CardHeader>
             <CardContent className="h-75">
@@ -54,9 +57,9 @@ export default function PageDashboard() {
         <div className="md:col-span-1">
           <Card className="bg-muted rounded-xl">
             <CardHeader>
-              <CardTitle>To-Do Liste</CardTitle>
+              <CardTitle>{t("dashboard.toDoList")}</CardTitle>
               <CardAction>
-                <Button><CirclePlus /> Neues To-Do</Button>
+                <Button><CirclePlus /> {t("dashboard.toDoListNewEntry")}</Button>
               </CardAction>
             </CardHeader>
             <CardContent>

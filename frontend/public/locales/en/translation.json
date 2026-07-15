@@ -1,0 +1,21 @@
+{
+  "sidebar": {
+    "navigation": "Navigation",
+    "dashboard": "Dashboard",
+    "timeManagement": "Time Management",
+    "lectureNotes": "Lecture notes",
+    "flashcards": "Flashcards",
+    "files": "Files",
+    "archive": "Archive",
+    "settings": "Settings",
+    "recentLectures": "Recent lectures"
+  },
+  "dashboard": {
+    "dailySchedule": "Daily Schedule",
+    "courses": "Courses",
+    "calendar": "Kalendar",
+    "calendarNewEntry": "New Entry",
+    "toDoList": "To-Do List",
+    "toDoListNewEntry": "New To-Do"
+  }
+}
