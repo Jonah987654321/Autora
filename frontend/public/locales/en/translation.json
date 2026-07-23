@@ -11,8 +11,9 @@
     "recentLectures": "Recent lectures"
   },
   "dashboard": {
+    "current": "Now",
     "dailySchedule": "Daily Schedule",
-    "dailyScheduleModify": "Modify",
+    "dailyScheduleModify": "Manage",
     "courses": "Courses",
     "calendar": "Calendar",
     "calendarNewEntry": "New Entry",

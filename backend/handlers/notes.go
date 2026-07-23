@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // --- Get all notes
@@ -18,7 +18,7 @@ func getNoteList(w http.ResponseWriter, r *http.Request) {
 
 	notes := make([]models.Note, 0)
 	notes = append(notes, models.Note{
-		ID:        primitive.NewObjectID(),
+		ID:        bson.NewObjectID(),
 		Title:     "Test Note 1",
 		CreatedAt: time.Now(),
 	})

@@ -11,6 +11,7 @@
     "recentLectures": "Letzte Vorlesungen"
   },
   "dashboard": {
+    "current": "Jetzt",
     "dailySchedule": "Tagesplan",
     "dailyScheduleModify": "Anpassen",
     "courses": "Module",

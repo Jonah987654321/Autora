@@ -21,7 +21,6 @@ func (rw *responseWriterWrapper) WriteHeader(code int) {
 
 // --- Middleware for logging incoming request
 func Logging() Middleware {
-	log.SetPrefix("mwLogging: ")
 	log.SetFlags(0)
 
 	// --- Create the middleware

@@ -4,10 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardAction,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { CardActionHeader } from "@/components/ui/cardActionHeader";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,14 +20,7 @@ export default function PageDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
           <Card className="bg-muted rounded-xl">
-            <CardActionHeader
-              title={t("dashboard.dailySchedule")}
-              action={
-                <Button>
-                  <Settings2 /> {t("dashboard.dailyScheduleModify")}
-                </Button>
-              }
-            />
+            <CardActionHeader title={t("dashboard.current")} />
             <CardContent></CardContent>
           </Card>
         </div>
@@ -52,9 +42,14 @@ export default function PageDashboard() {
         </div>
         <div>
           <Card className="bg-muted rounded-xl">
-            <CardHeader>
-              <CardTitle className="h-8">N/A</CardTitle>
-            </CardHeader>
+            <CardActionHeader
+              title={t("dashboard.dailySchedule")}
+              action={
+                <Button>
+                  <Settings2 /> {t("dashboard.dailyScheduleModify")}
+                </Button>
+              }
+            />
             <CardContent></CardContent>
           </Card>
         </div>

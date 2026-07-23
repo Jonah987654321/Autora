@@ -3,7 +3,7 @@ import { CardHeader, CardTitle } from "@/components/ui/card";
 
 interface CardActionHeaderProps {
   title: string;
-  action: React.ReactNode;
+  action?: React.ReactNode;
 }
 
 export function CardActionHeader({ title, action }: CardActionHeaderProps) {
