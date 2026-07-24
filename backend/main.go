@@ -1,6 +1,7 @@
 package main
 
 import (
+	"autora-backend/config"
 	"autora-backend/routing"
 	"context"
 	"errors"
@@ -12,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -24,25 +24,16 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	// --- Load env file for running without docker
-	// If it is missing, we can just discard the error
-	// because docker most probably already injected the vars
-	_ = godotenv.Load("../.env")
-
-	log.Print("INFO: Starting mongoDB connection")
-
-	// --- Env variable parsing & validation
-	dbHost := os.Getenv("MONGO_HOST_URI")
-	dbDBName := os.Getenv("MONGO_DATABASE_NAME")
-	dbUserName := os.Getenv("MONGO_USER_NAME")
-	dbUserPwd := os.Getenv("MONGO_USER_PWD")
-	if (dbHost == "" || dbDBName == "" || dbUserName == "" || dbUserPwd == "") {
-		log.Fatal("ERROR: Environment is missing at least one mongodb configuration key. Check .env.example for all keys needed")
+	// --- Init config
+	cfg, err := config.Init()
+	if err != nil {
+		log.Fatalf("ERROR: Failed to init configuration: %v", err)
 	}
 
 	// --- MongoDB Setup
+	log.Print("INFO: Starting mongoDB connection")
 	// Connection URI & client instance
-	dbURI := fmt.Sprintf("mongodb://%v:%v@%v/%v", dbUserName, dbUserPwd, dbHost, dbDBName)
+	dbURI := fmt.Sprintf("mongodb://%v:%v@%v/%v", cfg.DBUserName, cfg.DBUserPassword, cfg.DBHost, cfg.DBName)
 	client, err := mongo.Connect(options.Client().ApplyURI(dbURI))
 	if err != nil {
 		log.Fatalf("ERROR: Failed to setup mongoDB: %v", err)
@@ -53,8 +44,7 @@ func main() {
             log.Printf("ERROR: Failed to disconnect mongoDB: %v", err)
         }
     }()
-
-	// --- Connection health check
+	// Connection health check
 	for i := 1; i <= DB_CONNECTION_RETRIES; i++ {
 		ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 		err = client.Ping(ctx, nil)
@@ -62,7 +52,7 @@ func main() {
 		if err == nil {
 			break
 		} else {
-			log.Printf("WARNING: %v/%v Failed to connect to mongoDB, retrying in 5sec", i, DB_CONNECTION_RETRIES)
+			log.Printf("WARN: %v/%v Failed to connect to mongoDB, retrying in 5sec", i, DB_CONNECTION_RETRIES)
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -70,8 +60,7 @@ func main() {
 		log.Fatalf("ERROR: Failed to connect to mongoDB: %v", err)
 	}
 	log.Print("INFO: Connection to mongoDB established")
-
-	db := client.Database(dbDBName)
+	db := client.Database(cfg.DBName)
 
 	router := routing.CreateRouter(db)
 	server := http.Server{
