@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -21,7 +22,7 @@ const DB_CONNECTION_RETRIES = 5
 func main() {
 	// --- Register channel for interrupt signals to allow for graceful shutdown
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	// --- Load env file for running without docker
 	// If it is missing, we can just discard the error
