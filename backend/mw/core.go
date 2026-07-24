@@ -15,5 +15,5 @@ func Chain(endHandler http.Handler, middlewares ...Middleware) http.Handler {
 }
 
 func CoreChain(endHandler http.Handler, middlewares ...Middleware) http.Handler {
-	return Chain(endHandler, append(middlewares, Logging())...)
+	return Chain(endHandler, append([]Middleware{Logging()}, middlewares...)...)
 }

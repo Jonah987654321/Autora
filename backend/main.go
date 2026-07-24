@@ -2,11 +2,12 @@ package main
 
 import (
 	"autora-backend/config"
+	"autora-backend/logger"
 	"autora-backend/routing"
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -24,24 +25,29 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
+	// --- Init logger
+	logger.Init()
+
 	// --- Init config
 	cfg, err := config.Init()
 	if err != nil {
-		log.Fatalf("ERROR: Failed to init configuration: %v", err)
+		slog.Error("Failed to init configuration", "error", err)
+		os.Exit(1)
 	}
 
 	// --- MongoDB Setup
-	log.Print("INFO: Starting mongoDB connection")
+	slog.Info("Starting mongoDB connection")
 	// Connection URI & client instance
 	dbURI := fmt.Sprintf("mongodb://%v:%v@%v/%v", cfg.DBUserName, cfg.DBUserPassword, cfg.DBHost, cfg.DBName)
 	client, err := mongo.Connect(options.Client().ApplyURI(dbURI))
 	if err != nil {
-		log.Fatalf("ERROR: Failed to setup mongoDB: %v", err)
+		slog.Error("Failed to setup mongoDB", "error", err)
+		os.Exit(1)
 	}
 	// Disconnection cleanup
 	defer func() {
         if err := client.Disconnect(context.Background()); err != nil {
-            log.Printf("ERROR: Failed to disconnect mongoDB: %v", err)
+			slog.Error("Failed to disconnect mongoDB", "error", err)
         }
     }()
 	// Connection health check
@@ -52,21 +58,22 @@ func main() {
 		if err == nil {
 			break
 		} else {
-			log.Printf("WARN: %v/%v Failed to connect to mongoDB, retrying in 5sec", i, DB_CONNECTION_RETRIES)
+			slog.Warn("Failed to connect to mongoDB, retrying in 5sec", "attempt", i, "max_retries", DB_CONNECTION_RETRIES)
 		}
 		retry := time.After(5 * time.Second)
 		select {
 			case <-quit:
-				log.Print("INFO: Received interrupt, aborting mongoDB connection retries")
+				slog.Info("Received interrupt, aborting mongoDB connection retries")
 				return
 			case <-retry:
 				continue
 		}
 	}
 	if err != nil {
-		log.Fatalf("ERROR: Failed to connect to mongoDB: %v", err)
+		slog.Error("Failed to connect to mongoDB", "error", err)
+		os.Exit(1)
 	}
-	log.Print("INFO: Connection to mongoDB established")
+	slog.Info("Connection to mongoDB established")
 	db := client.Database(cfg.DBName)
 
 	router := routing.CreateRouter(db)
@@ -76,10 +83,11 @@ func main() {
 	}
 
 	go func() {
-		log.Print("INFO: Starting webserver")
+		slog.Info("Starting webserver")
     	err = server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("ERROR: Failed to start webserver: %v", err)
+			slog.Error("Failed to start webserver", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -89,6 +97,6 @@ func main() {
 	// Shutdown server
 	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
 	defer cancel()
-	log.Print("INFO: Received interrupt, shutting down server")
+	slog.Info("Received interrupt, shutting down server")
 	server.Shutdown(ctx)
 }

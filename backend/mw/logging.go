@@ -1,8 +1,7 @@
 package mw
 
 import (
-	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -21,7 +20,6 @@ func (rw *responseWriterWrapper) WriteHeader(code int) {
 
 // --- Middleware for logging incoming request
 func Logging() Middleware {
-	log.SetFlags(0)
 
 	// --- Create the middleware
 	return func(f http.Handler) http.Handler {
@@ -38,8 +36,14 @@ func Logging() Middleware {
 			// --- Logging logic
             start := time.Now()
             defer func() {
-				logMessage := fmt.Sprintf("[%v] %d %v %v took %v", time.Now().Local().Format("06/01/02 15:04:05"), wrapper.statusCode, r.Method, r.URL.Path, time.Since(start))
-				log.Println(logMessage)
+				preparedLogger := slog.With("path", r.URL.Path, "method", r.Method, "status", wrapper.statusCode, "duration", time.Since(start))
+				if wrapper.statusCode >= 500 {
+					preparedLogger.Error("HTTP Request")
+				} else if wrapper.statusCode >= 400 && wrapper.statusCode <= 499 {
+					preparedLogger.Warn("HTTP Request")
+				} else {
+					preparedLogger.Info("HTTP Request")
+				}
 			}()
 
             // --- Next func call

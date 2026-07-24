@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -44,7 +44,7 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)  {
 		if errors.Is(err, ErrInvalidCredentials) {
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		} else {
-			log.Printf("ERROR: Internal error on login: %v", err)
+			slog.Error("Login failed", "error", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 		}
 		return
