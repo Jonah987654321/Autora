@@ -3,10 +3,12 @@ package main
 import (
 	"autora-backend/routing"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -17,6 +19,9 @@ import (
 const DB_CONNECTION_RETRIES = 5
 
 func main() {
+	// --- Register channel for interrupt signals to allow for graceful shutdown
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
 
 	// --- Load env file for running without docker
 	// If it is missing, we can just discard the error
@@ -68,10 +73,25 @@ func main() {
 	db := client.Database(dbDBName)
 
 	router := routing.CreateRouter(db)
-
-	log.Print("INFO: Starting webserver")
-    err = http.ListenAndServe(":8080", router)
-	if err != nil {
-		log.Fatalf("ERROR: Failed to start webserver: %v", err)
+	server := http.Server{
+		Addr: ":8080",
+		Handler: router,
 	}
+
+	go func() {
+		log.Print("INFO: Starting webserver")
+    	err = server.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("ERROR: Failed to start webserver: %v", err)
+		}
+	}()
+
+	// --- Graceful shutdown
+	// Wait for signal
+	<-c
+	// Shutdown server
+	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	defer cancel()
+	log.Print("INFO: Received interrupt, shutting down server")
+	server.Shutdown(ctx)
 }
