@@ -21,8 +21,8 @@ const DB_CONNECTION_RETRIES = 5
 
 func main() {
 	// --- Register channel for interrupt signals to allow for graceful shutdown
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	// --- Init config
 	cfg, err := config.Init()
@@ -54,7 +54,14 @@ func main() {
 		} else {
 			log.Printf("WARN: %v/%v Failed to connect to mongoDB, retrying in 5sec", i, DB_CONNECTION_RETRIES)
 		}
-		time.Sleep(5 * time.Second)
+		retry := time.After(5 * time.Second)
+		select {
+			case <-quit:
+				log.Print("INFO: Received interrupt, aborting mongoDB connection retries")
+				return
+			case <-retry:
+				continue
+		}
 	}
 	if err != nil {
 		log.Fatalf("ERROR: Failed to connect to mongoDB: %v", err)
@@ -78,7 +85,7 @@ func main() {
 
 	// --- Graceful shutdown
 	// Wait for signal
-	<-c
+	<-quit
 	// Shutdown server
 	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
 	defer cancel()
