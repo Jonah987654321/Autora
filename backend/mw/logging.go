@@ -24,10 +24,10 @@ func Logging() Middleware {
 	log.SetFlags(0)
 
 	// --- Create the middleware
-	return func(f http.HandlerFunc) http.HandlerFunc {
+	return func(f http.Handler) http.Handler {
 
 		// --- Define the handlerFunc
-		return func(w http.ResponseWriter, r *http.Request) {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 			// --- Init responseWriterWrapper
 			wrapper := &responseWriterWrapper{
@@ -43,7 +43,7 @@ func Logging() Middleware {
 			}()
 
             // --- Next func call
-            f(wrapper, r)
-		}
+            f.ServeHTTP(wrapper, r)
+		})
 	}
 }

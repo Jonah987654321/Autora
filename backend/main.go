@@ -1,8 +1,7 @@
 package main
 
 import (
-	"autora-backend/handlers"
-	"autora-backend/mw"
+	"autora-backend/routing"
 	"context"
 	"fmt"
 	"log"
@@ -66,18 +65,12 @@ func main() {
 	}
 	log.Print("INFO: Connection to mongoDB established")
 
-	// db := client.Database(dbDBName)
+	db := client.Database(dbDBName)
 
-	// --- Everything that is not explicitly handled by other routes -> 404
-	http.HandleFunc("/", mw.CoreChain(func(w http.ResponseWriter, r *http.Request) {
-		http.NotFound(w, r)
-	}))
-
-	// --- Handle request fetching notes
-	http.HandleFunc("/notes/list", handlers.NoteListHandler)
+	router := routing.CreateRouter(db)
 
 	log.Print("INFO: Starting webserver")
-    err = http.ListenAndServe(":8080", nil)
+    err = http.ListenAndServe(":8080", router)
 	if err != nil {
 		log.Fatalf("ERROR: Failed to start webserver: %v", err)
 	}

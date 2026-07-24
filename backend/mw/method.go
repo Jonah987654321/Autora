@@ -4,8 +4,8 @@ import "net/http"
 
 // --- Middleware for enforcing HTTP Request methods
 func Method(m string) Middleware {
-    return func(f http.HandlerFunc) http.HandlerFunc {
-        return func(w http.ResponseWriter, r *http.Request) {
+    return func(f http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
             // --- Ensure the method is matching
             if r.Method != m {
@@ -13,7 +13,7 @@ func Method(m string) Middleware {
                 return
             }
 
-            f(w, r)
-        }
+            f.ServeHTTP(w, r)
+        })
     }
 }
