@@ -9,6 +9,7 @@ import (
 )
 
 var ErrInvalidCredentials = errors.New("auth: invalid credentials")
+var ErrEmailAlreadyExisting = errors.New("auth: email already registered")
 
 type LoginDataDB struct {
     Email        string `bson:"email"`
@@ -18,10 +19,10 @@ type LoginDataDB struct {
 type AuthActionsMongo struct {
 	Database *mongo.Database
 }
-func (a *AuthActionsMongo) Login(ctx context.Context, email, password string) (string, error){
+func (a *AuthActionsMongo) Login(ctx context.Context, data LoginData) (string, error){
 	// --- Query database for user with given email
 	var user LoginDataDB
-	filter := bson.M{"email": email}
+	filter := bson.M{"email": data.Email}
 	err := a.Database.Collection("userData").FindOne(ctx, filter).Decode(&user)
 
 	// --- Possible error handling
@@ -34,9 +35,13 @@ func (a *AuthActionsMongo) Login(ctx context.Context, email, password string) (s
 		return "", err
 	}
 
-	if (!VerifyPassword(password, user.PasswordHash)) {
+	if (!VerifyPassword(data.Password, user.PasswordHash)) {
 		return "", ErrInvalidCredentials
 	}
 
 	return "jwt-token", nil
+}
+
+func (a *AuthActionsMongo) Signup(ctx context.Context, data SignupData) (string, error) {
+	return "", nil
 }

@@ -19,6 +19,7 @@ func CreateRouter(db *mongo.Database) (*http.ServeMux) {
 		Database: db,
 	}
 	router.Handle("/auth/login", auth.NewLoginHandler(authDB))
+	router.Handle("/auth/signup", auth.NewSignupHandler(authDB))
 
 	return router
 }
