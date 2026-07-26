@@ -7,15 +7,19 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type Database struct {
+	Name string
+	UserName string
+	UserPassword string
+	Host string
+}
+
 type Data struct {
 	// --- General App
 	AppEnvironment string
 
-	// --- Database
-	DBName string
-	DBUserName string
-	DBUserPassword string
-	DBHost string
+	DB Database
+	
 }
 
 func Init() (Data, error) {
@@ -39,13 +43,16 @@ func Init() (Data, error) {
 		return Data{}, errors.New("Some or all mongoDB config parameters are missing")
 	}
 
+	dbData := Database{
+		Name: dbDBName,
+		UserName: dbUserName,
+		UserPassword: dbUserPwd,
+		Host: dbHost,
+	}
+
 	parsedData := Data{
 		AppEnvironment: appEnv,
-		
-		DBName: dbDBName,
-		DBUserName: dbUserName,
-		DBUserPassword: dbUserPwd,
-		DBHost: dbHost,
+		DB: dbData,
 	}
 
 	return parsedData, nil
