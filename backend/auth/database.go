@@ -8,6 +8,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
+const COLLECTION = "users"
+
 var ErrInvalidCredentials = errors.New("auth: invalid credentials")
 var ErrEmailAlreadyExisting = errors.New("auth: email already registered")
 
@@ -23,7 +25,7 @@ func (a *AuthActionsMongo) Login(ctx context.Context, data LoginData) (string, e
 	// --- Query database for user with given email
 	var user LoginDataDB
 	filter := bson.M{"email": data.Email}
-	err := a.Database.Collection("userData").FindOne(ctx, filter).Decode(&user)
+	err := a.Database.Collection(COLLECTION).FindOne(ctx, filter).Decode(&user)
 
 	// --- Possible error handling
 	if err != nil {

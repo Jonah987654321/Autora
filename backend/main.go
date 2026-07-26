@@ -45,6 +45,13 @@ func main() {
 	db := dbClient.Database(cfg.DB.Name)
 	// Disconnect cleanup
 	defer database.Disconnect(dbClient)
+	// Indices setup
+	slog.Info("Setting up indices")
+	err = database.SetupIndices(db)
+	if err != nil {
+		slog.Error("Indices setup failed"," error", err)
+		os.Exit(1)
+	}
 	slog.Info("Connection to mongoDB established")
 
 	router := routing.CreateRouter(db)

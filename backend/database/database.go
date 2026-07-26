@@ -1,6 +1,7 @@
 package database
 
 import (
+	"autora-backend/auth"
 	"autora-backend/config"
 	"context"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -57,4 +59,24 @@ func Disconnect(client *mongo.Client) {
 	if err != nil {
 		slog.Error("Failed to disconnect mongoDB", "error", err)
 	}
+}
+
+func SetupIndices(db *mongo.Database) error {
+	col := db.Collection(auth.COLLECTION)
+	
+	// --- Define model for email to be unique
+	model := mongo.IndexModel{
+		Keys: bson.D{{Key: "email", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	defer cancel()
+
+	_, err := col.Indexes().CreateOne(ctx, model)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
