@@ -1,4 +1,18 @@
 services:
+  caddy:
+    image: caddy:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./docker/caddy:/etc/caddy
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+
   mongodb:
     image: mongo:latest
     restart: unless-stopped
@@ -19,13 +33,17 @@ services:
   backend:
     build:
       context: ./backend
-    ports:
-      - 8080:8080
     env_file:
       - .env
     depends_on:
       - mongodb
     restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
   
 volumes:
   mongodb_data:
+  caddy_data:
+  caddy_config:
