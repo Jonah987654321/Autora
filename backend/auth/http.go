@@ -23,9 +23,29 @@ type SignupData struct {
 	FullName string `json:"fullName"`
 }
 
+// --- Auth Handler abstracts the common parts for all auth handlers
+type authHandler struct {
+	service         Service
+	refreshTokenTTL int
+}
+
+func (a *authHandler) CreateRefreshTokenCookie(tokenValue string) http.Cookie {
+	return http.Cookie{
+		Name:  "autora-refreshToken",
+		Value: tokenValue,
+		// Domain as "" lets the browser automatically fill the domain
+		Domain:   "",
+		Path:     "/api/auth/refresh",
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		HttpOnly: true,
+		MaxAge:   a.refreshTokenTTL,
+	}
+}
+
 // --- Handle Logins and handout JWT tokens
 type LoginHandler struct {
-	service Service
+	authHandler
 }
 
 func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -60,16 +80,19 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// TODO: add cookie with refresh token
 	w.Write([]byte(tokens.AccessToken))
 }
-func NewLoginHandler(s Service) http.Handler {
+func NewLoginHandler(s Service, refreshTokenTTL int) http.Handler {
 	handler := &LoginHandler{
-		service: s,
+		authHandler: authHandler{
+			service:         s,
+			refreshTokenTTL: refreshTokenTTL,
+		},
 	}
 	return mw.CoreChain(handler, mw.Method("POST"))
 }
 
 // --- Create user accounts
 type SignupHandler struct {
-	service Service
+	authHandler
 }
 
 func (h *SignupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -117,9 +140,12 @@ func (h *SignupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// TODO: add cookie with refresh token
 	w.Write([]byte(tokens.AccessToken))
 }
-func NewSignupHandler(s Service) http.Handler {
+func NewSignupHandler(s Service, refreshTokenTTL int) http.Handler {
 	handler := &SignupHandler{
-		service: s,
+		authHandler: authHandler{
+			service:         s,
+			refreshTokenTTL: refreshTokenTTL,
+		},
 	}
 	return mw.CoreChain(handler, mw.Method("POST"))
 }

@@ -8,27 +8,27 @@ import (
 )
 
 type Database struct {
-	Name string
-	UserName string
+	Name         string
+	UserName     string
 	UserPassword string
-	Host string
+	Host         string
 }
 
 type JWT struct {
-	AccessSecret []byte
+	AccessSecret  []byte
 	RefreshSecret []byte
 }
 
 type Data struct {
 	// --- General App
 	AppEnvironment string
+	AppDomain      string
 
-	DB Database
+	DB  Database
 	Jwt JWT
-	
 }
 
-func Init() (Data, error) {
+func Init() (*Data, error) {
 	// --- Load env file for running without docker
 	// If it is missing, we can just discard the error
 	// because docker most probably already injected the vars
@@ -37,40 +37,45 @@ func Init() (Data, error) {
 	// --- Env variable parsing & validation
 	// General App Configuration
 	appEnv := os.Getenv("APP_ENV")
-	if (appEnv == "" || (appEnv != "development" && appEnv != "production")) {
-		return Data{}, errors.New("APP_ENV is missing or not a valid value")
+	if appEnv != "development" && appEnv != "production" {
+		return nil, errors.New("APP_ENV is missing or not a valid value")
+	}
+	appDomain := os.Getenv("APP_DOMAIN")
+	if appDomain == "" {
+		return nil, errors.New("APP_DOMAIN is not set")
 	}
 	// MongoDB configuration
 	dbHost := os.Getenv("MONGO_HOST")
 	dbDBName := os.Getenv("MONGO_DATABASE_NAME")
 	dbUserName := os.Getenv("MONGO_USER_NAME")
 	dbUserPwd := os.Getenv("MONGO_USER_PWD")
-	if (dbHost == "" || dbDBName == "" || dbUserName == "" || dbUserPwd == "") {
-		return Data{}, errors.New("Some or all mongoDB config parameters are missing")
+	if dbHost == "" || dbDBName == "" || dbUserName == "" || dbUserPwd == "" {
+		return nil, errors.New("Some or all mongoDB config parameters are missing")
 	}
 	// JWT configuration
 	accessSecret := os.Getenv("JWT_ACCESS_SECRET")
 	refreshSecret := os.Getenv("JWT_REFRESH_SECRET")
 	if len(accessSecret) < 32 || len(refreshSecret) < 32 {
-		return Data{}, errors.New("JWT secrets must be at least 32 characters")
+		return nil, errors.New("JWT secrets must be at least 32 characters")
 	}
 
 	dbData := Database{
-		Name: dbDBName,
-		UserName: dbUserName,
+		Name:         dbDBName,
+		UserName:     dbUserName,
 		UserPassword: dbUserPwd,
-		Host: dbHost,
+		Host:         dbHost,
 	}
 	jwtData := JWT{
-		AccessSecret: []byte(accessSecret),
+		AccessSecret:  []byte(accessSecret),
 		RefreshSecret: []byte(refreshSecret),
 	}
 
 	parsedData := Data{
 		AppEnvironment: appEnv,
-		DB: dbData,
-		Jwt: jwtData,
+		AppDomain:      appDomain,
+		DB:             dbData,
+		Jwt:            jwtData,
 	}
 
-	return parsedData, nil
+	return &parsedData, nil
 }

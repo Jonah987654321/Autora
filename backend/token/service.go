@@ -202,3 +202,7 @@ func (s *JWTService) RevokeAllUserTokens(ctx context.Context, userID string) err
 
 	return nil
 }
+
+func (s *JWTService) GetConfig() Config {
+	return s.config
+}
