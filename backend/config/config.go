@@ -14,11 +14,17 @@ type Database struct {
 	Host string
 }
 
+type JWT struct {
+	AccessSecret []byte
+	RefreshSecret []byte
+}
+
 type Data struct {
 	// --- General App
 	AppEnvironment string
 
 	DB Database
+	Jwt JWT
 	
 }
 
@@ -42,6 +48,12 @@ func Init() (Data, error) {
 	if (dbHost == "" || dbDBName == "" || dbUserName == "" || dbUserPwd == "") {
 		return Data{}, errors.New("Some or all mongoDB config parameters are missing")
 	}
+	// JWT configuration
+	accessSecret := os.Getenv("JWT_ACCESS_SECRET")
+	refreshSecret := os.Getenv("JWT_REFRESH_SECRET")
+	if len(accessSecret) < 32 || len(refreshSecret) < 32 {
+		return Data{}, errors.New("JWT secrets must be at least 32 characters")
+	}
 
 	dbData := Database{
 		Name: dbDBName,
@@ -49,10 +61,15 @@ func Init() (Data, error) {
 		UserPassword: dbUserPwd,
 		Host: dbHost,
 	}
+	jwtData := JWT{
+		AccessSecret: []byte(accessSecret),
+		RefreshSecret: []byte(refreshSecret),
+	}
 
 	parsedData := Data{
 		AppEnvironment: appEnv,
 		DB: dbData,
+		Jwt: jwtData,
 	}
 
 	return parsedData, nil
