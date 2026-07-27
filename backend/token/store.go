@@ -20,6 +20,12 @@ type UserStore struct {
 	RefreshTokens []string      `bson:"refreshTokens"`
 }
 
+func NewTokenStore(db *mongo.Database) TokenStore {
+	return TokenStore{
+		db: db,
+	}
+}
+
 type TokenStore struct {
 	db *mongo.Database
 }

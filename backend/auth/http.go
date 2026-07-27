@@ -2,7 +2,6 @@ package auth
 
 import (
 	"autora-backend/mw"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,26 +14,21 @@ import (
 // --- Structs for decoding received JSON
 // Data for login
 type LoginData struct {
-	Email 	string 	`json:"email"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 type SignupData struct {
-	Email 	string 	`json:"email"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 	FullName string `json:"fullName"`
 }
 
-// --- Interface for providing all actions regarding auth
-type AuthActions interface {
-	Login(ctx context.Context, data LoginData) (string, error)
-	Signup(ctx context.Context, data SignupData) (string, error)
-}
-
 // --- Handle Logins and handout JWT tokens
 type LoginHandler struct {
-	actions AuthActions
+	service Service
 }
-func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)  {
+
+func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//  To prevent abuse, limit body length to 1MB
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
@@ -45,7 +39,14 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	generatedToken, err := h.actions.Login(r.Context(), loginData)
+	// Email address validation
+	_, err = mail.ParseAddress(loginData.Email)
+	if err != nil {
+		http.Error(w, "Invalid email", http.StatusBadRequest)
+		return
+	}
+
+	tokens, err := h.service.LoginUserAndGenerateToken(r.Context(), loginData)
 	if err != nil {
 		if errors.Is(err, ErrInvalidCredentials) {
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
@@ -56,21 +57,22 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	// Needs to be replaced with cookie
-	w.Write([]byte(generatedToken))
+	// TODO: add cookie with refresh token
+	w.Write([]byte(tokens.AccessToken))
 }
-func NewLoginHandler(a AuthActions) http.Handler {
+func NewLoginHandler(s Service) http.Handler {
 	handler := &LoginHandler{
-		actions: a,
+		service: s,
 	}
 	return mw.CoreChain(handler, mw.Method("POST"))
 }
 
-// Create user accounts
+// --- Create user accounts
 type SignupHandler struct {
-	actions AuthActions
+	service Service
 }
-func (h *SignupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)  {
+
+func (h *SignupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//  To prevent abuse, limit body length to 1MB
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 
@@ -101,7 +103,7 @@ func (h *SignupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	generatedToken, err := h.actions.Signup(r.Context(), signupData)
+	tokens, err := h.service.RegisterUserAndGenerateToken(r.Context(), signupData)
 	if err != nil {
 		if errors.Is(err, ErrEmailAlreadyExisting) {
 			http.Error(w, "Email already registered", http.StatusConflict)
@@ -112,12 +114,12 @@ func (h *SignupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	// Needs to be replaced with cookie
-	w.Write([]byte(generatedToken))
+	// TODO: add cookie with refresh token
+	w.Write([]byte(tokens.AccessToken))
 }
-func NewSignupHandler(a AuthActions) http.Handler {
+func NewSignupHandler(s Service) http.Handler {
 	handler := &SignupHandler{
-		actions: a,
+		service: s,
 	}
 	return mw.CoreChain(handler, mw.Method("POST"))
 }

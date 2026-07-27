@@ -5,6 +5,7 @@ import (
 	"autora-backend/database"
 	"autora-backend/logger"
 	"autora-backend/routing"
+	"autora-backend/token"
 	"context"
 	"errors"
 	"log/slog"
@@ -34,7 +35,7 @@ func main() {
 	slog.Info("Starting mongoDB connection")
 	dbClient, err := database.Init(cfg.DB, quit)
 	if err != nil {
-		if (errors.Is(err, database.ErrConnectingInterrupted)) {
+		if errors.Is(err, database.ErrConnectingInterrupted) {
 			slog.Info("Received interrupt, aborting mongoDB connection retries")
 			return
 		}
@@ -49,20 +50,27 @@ func main() {
 	slog.Info("Setting up indices")
 	err = database.SetupIndices(db)
 	if err != nil {
-		slog.Error("Indices setup failed"," error", err)
+		slog.Error("Indices setup failed", " error", err)
 		os.Exit(1)
 	}
 	slog.Info("Connection to mongoDB established")
 
-	router := routing.CreateRouter(db)
+	// ---JWT setup
+	jwtConfig := token.GenerateConfig(cfg.Jwt.AccessSecret, cfg.Jwt.RefreshSecret)
+	jwtStore := token.NewTokenStore(db)
+	jwtService := token.NewJWTService(jwtConfig, jwtStore)
+
+	// --- Router config & start
+	// Get the router with routes
+	router := routing.CreateRouter(db, &jwtService)
 	server := http.Server{
-		Addr: ":8080",
+		Addr:    ":8080",
 		Handler: router,
 	}
-
+	// start it async to not block the main thread
 	go func() {
 		slog.Info("Starting webserver")
-    	err = server.ListenAndServe()
+		err = server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("Failed to start webserver", "error", err)
 			os.Exit(1)
@@ -73,7 +81,7 @@ func main() {
 	// Wait for signal
 	<-quit
 	// Shutdown server
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	slog.Info("Received interrupt, shutting down server")
 	server.Shutdown(ctx)

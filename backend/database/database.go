@@ -28,7 +28,7 @@ func Init(cfg config.Database, quit <-chan os.Signal) (*mongo.Client, error) {
 	}
 	// Connection health check
 	for i := 1; i <= CONNECTION_RETRIES; i++ {
-		ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		err = client.Ping(ctx, nil)
 		cancel()
 		if err == nil {
@@ -38,11 +38,11 @@ func Init(cfg config.Database, quit <-chan os.Signal) (*mongo.Client, error) {
 		}
 		retry := time.After(5 * time.Second)
 		select {
-			case <-quit:
-				Disconnect(client)
-				return nil, ErrConnectingInterrupted
-			case <-retry:
-				continue
+		case <-quit:
+			Disconnect(client)
+			return nil, ErrConnectingInterrupted
+		case <-retry:
+			continue
 		}
 	}
 	if err != nil {
@@ -53,7 +53,7 @@ func Init(cfg config.Database, quit <-chan os.Signal) (*mongo.Client, error) {
 }
 
 func Disconnect(client *mongo.Client) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	err := client.Disconnect(ctx)
 	if err != nil {
@@ -62,18 +62,18 @@ func Disconnect(client *mongo.Client) {
 }
 
 func SetupIndices(db *mongo.Database) error {
-	col := db.Collection(auth.COLLECTION)
-	
-	// --- Define model for email to be unique
+	// --- Auth collection index
+	colAuth := db.Collection(auth.COLLECTION)
+	// Define model for email to be unique
 	model := mongo.IndexModel{
-		Keys: bson.D{{Key: "email", Value: 1}},
+		Keys:    bson.D{{Key: "email", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	// Timeout and context
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	_, err := col.Indexes().CreateOne(ctx, model)
+	// Execute
+	_, err := colAuth.Indexes().CreateOne(ctx, model)
 	if err != nil {
 		return err
 	}

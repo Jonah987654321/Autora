@@ -15,9 +15,10 @@ type JWTService struct {
 	tokenStore TokenStore
 }
 
-func NewJWTService(config Config) JWTService {
+func NewJWTService(config Config, store TokenStore) JWTService {
 	return JWTService{
-		config: config,
+		config:     config,
+		tokenStore: store,
 	}
 }
 
