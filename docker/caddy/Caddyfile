@@ -1,6 +1,6 @@
 {$APP_DOMAIN} {
     handle_path /api/* {
-        reverse_proxy backend:8080
+        reverse_proxy backend_host:8080
     }
-    reverse_proxy frontend:80
+    reverse_proxy frontend_host:{$FRONTEND_PORT}
 }

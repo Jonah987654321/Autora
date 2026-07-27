@@ -13,7 +13,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o autora-backend ./main.go
 
 
-# --- STAGE 2: Finale Image for production
+# --- STAGE 2: Final Image for production
 FROM alpine:latest AS production
 WORKDIR /app/
 
@@ -29,3 +29,17 @@ USER autora
 EXPOSE 8080
 
 CMD [ "./autora-backend" ]
+
+# --- STAGE 3: Running the project with air for hot-reload
+# this enables easier development without needing to restart & rebuild on changes
+# check https://github.com/air-verse/air#docker for details
+FROM golang:1.26-alpine AS development
+
+WORKDIR /app
+
+RUN go install github.com/air-verse/air@latest
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+CMD ["air", "-c", ".air.toml"]

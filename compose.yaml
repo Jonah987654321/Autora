@@ -12,6 +12,8 @@ services:
       - caddy_config:/config
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
+      # Default to 80 for production, overwrite in dev mode
+      FRONTEND_PORT: ${FRONTEND_PORT:-80}
 
   mongodb:
     image: mongo:latest
@@ -30,18 +32,67 @@ services:
       # Init script
       - ./docker/mongodb/init.js:/docker-entrypoint-initdb.d/init.js:ro
 
+  # --- Backend (go) services
+  # for production, static-build
   backend:
+    profiles: ["production"]
     build:
       context: ./backend
+      target: production
     env_file:
       - .env
     depends_on:
       - mongodb
     restart: unless-stopped
-
-  frontend:
-    build: ./frontend
+    networks:
+      default:
+        aliases:
+          - backend_host
+  # for development, hot-reload
+  backend-dev:
+    profiles: ["development"]
+    build:
+      context: ./backend
+      target: development
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
     restart: unless-stopped
+    volumes:
+      - ./backend:/app
+    networks:
+      default:
+        aliases:
+          - backend_host
+
+  # --- Frontend (React) services
+  # for production, single-page built application
+  frontend:
+    profiles: ["production"]
+    build: 
+      context: ./frontend
+      target: production
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - frontend_host
+  # for development, hot-reload
+  frontend-dev:
+    profiles: ["development"]
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - frontend_host
+    build:
+      context: ./frontend
+      target: development
+    volumes:
+      - ./frontend:/app
+      # prevent node modules from being overwritten
+      - /app/node_modules
   
 volumes:
   mongodb_data:
