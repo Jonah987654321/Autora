@@ -29,8 +29,8 @@ type authHandler struct {
 	refreshTokenTTL int
 }
 
-func (a *authHandler) CreateRefreshTokenCookie(tokenValue string) http.Cookie {
-	return http.Cookie{
+func (a *authHandler) CreateRefreshTokenCookie(tokenValue string) *http.Cookie {
+	return &http.Cookie{
 		Name:  "autora-refreshToken",
 		Value: tokenValue,
 		// Domain as "" lets the browser automatically fill the domain
@@ -55,30 +55,37 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var loginData LoginData
 	err := json.NewDecoder(r.Body).Decode(&loginData)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error on decoding JSON: %v", err), http.StatusBadRequest)
+		mw.SetErrorAsJSON(w, fmt.Sprintf("Error on decoding JSON: %v", err), http.StatusBadRequest)
 		return
 	}
 
 	// Email address validation
 	_, err = mail.ParseAddress(loginData.Email)
 	if err != nil {
-		http.Error(w, "Invalid email", http.StatusBadRequest)
+		mw.SetErrorAsJSON(w, "Invalid email", http.StatusBadRequest)
 		return
 	}
 
 	tokens, err := h.service.LoginUserAndGenerateToken(r.Context(), loginData)
 	if err != nil {
 		if errors.Is(err, ErrInvalidCredentials) {
-			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			mw.SetErrorAsJSON(w, "Invalid credentials", http.StatusUnauthorized)
 		} else {
 			slog.Error("Login failed", "error", err)
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			mw.SetErrorAsJSON(w, "Internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	// TODO: add cookie with refresh token
-	w.Write([]byte(tokens.AccessToken))
+	// --- Create response
+	// Set JSON as content type
+	w.Header().Set("Content-Type", "application/json")
+	// Attach refresh cookie as cookie
+	http.SetCookie(w, h.CreateRefreshTokenCookie(tokens.RefreshToken))
+	// Put the access token in the body
+	json.NewEncoder(w).Encode(map[string]string{
+		"accessToken": tokens.AccessToken,
+	})
 }
 func NewLoginHandler(s Service, refreshTokenTTL int) http.Handler {
 	handler := &LoginHandler{
@@ -103,7 +110,7 @@ func (h *SignupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var signupData SignupData
 	err := json.NewDecoder(r.Body).Decode(&signupData)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error on decoding JSON: %v", err), http.StatusBadRequest)
+		mw.SetErrorAsJSON(w, fmt.Sprintf("Error on decoding JSON: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -111,34 +118,41 @@ func (h *SignupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Email address
 	_, err = mail.ParseAddress(signupData.Email)
 	if err != nil {
-		http.Error(w, "Invalid email", http.StatusBadRequest)
+		mw.SetErrorAsJSON(w, "Invalid email", http.StatusBadRequest)
 		return
 	}
 	// Password
 	if len(signupData.Password) < 8 {
-		http.Error(w, "Password not long enough", http.StatusBadRequest)
+		mw.SetErrorAsJSON(w, "Password not long enough", http.StatusBadRequest)
 		return
 	}
 	// Full name
 	signupData.FullName = strings.TrimSpace(signupData.FullName)
 	if signupData.FullName == "" {
-		http.Error(w, "Full name cannot be empty", http.StatusBadRequest)
+		mw.SetErrorAsJSON(w, "Full name cannot be empty", http.StatusBadRequest)
 		return
 	}
 
 	tokens, err := h.service.RegisterUserAndGenerateToken(r.Context(), signupData)
 	if err != nil {
 		if errors.Is(err, ErrEmailAlreadyExisting) {
-			http.Error(w, "Email already registered", http.StatusConflict)
+			mw.SetErrorAsJSON(w, "Email already registered", http.StatusConflict)
 		} else {
 			slog.Error("Signup failed", "error", err)
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			mw.SetErrorAsJSON(w, "Internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
 
-	// TODO: add cookie with refresh token
-	w.Write([]byte(tokens.AccessToken))
+	// --- Create response
+	// Set JSON as content type
+	w.Header().Set("Content-Type", "application/json")
+	// Attach refresh cookie as cookie
+	http.SetCookie(w, h.CreateRefreshTokenCookie(tokens.RefreshToken))
+	// Put the access token in the body
+	json.NewEncoder(w).Encode(map[string]string{
+		"accessToken": tokens.AccessToken,
+	})
 }
 func NewSignupHandler(s Service, refreshTokenTTL int) http.Handler {
 	handler := &SignupHandler{
