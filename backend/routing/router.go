@@ -20,9 +20,11 @@ func CreateRouter(db *mongo.Database, jwtService *token.JWTService) *http.ServeM
 		Database: db,
 	}
 	authService := auth.NewService(authDB, jwtService)
-	refreshTokenSSL := int(jwtService.GetConfig().RefreshTokenTTL.Seconds())
-	router.Handle("/auth/login", auth.NewLoginHandler(authService, refreshTokenSSL))
-	router.Handle("/auth/signup", auth.NewSignupHandler(authService, refreshTokenSSL))
+	refreshTokenTTL := int(jwtService.GetConfig().RefreshTokenTTL.Seconds())
+	router.Handle("/auth/login", auth.NewLoginHandler(authService, refreshTokenTTL))
+	router.Handle("/auth/signup", auth.NewSignupHandler(authService, refreshTokenTTL))
+	router.Handle("/auth/refresh", auth.NewRefreshHandler(authService, refreshTokenTTL))
+	router.Handle("/auth/logout", auth.NewLogoutHandler(authService, refreshTokenTTL))
 
 	return router
 }

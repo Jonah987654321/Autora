@@ -85,3 +85,25 @@ func (a *AuthActionsMongo) Signup(ctx context.Context, data SignupData) (string,
 
 	return userID.Hex(), nil
 }
+
+func (a *AuthActionsMongo) VerifyUserID(ctx context.Context, id string) (bool, error) {
+	userObjectId, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		return false, fmt.Errorf("failed to convert userID to ObjectID: %w", err)
+	}
+
+	filter := bson.M{"_id": userObjectId}
+
+	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	err = a.Database.Collection(COLLECTION).FindOne(dbCtx, filter).Err()
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("database query to findOne failed: %w", err)
+	}
+
+	return true, nil
+}

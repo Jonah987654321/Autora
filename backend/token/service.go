@@ -203,6 +203,72 @@ func (s *JWTService) RevokeAllUserTokens(ctx context.Context, userID string) err
 	return nil
 }
 
+func (s *JWTService) RevokeSingleRefreshToken(ctx context.Context, refreshTokenString string) error {
+	token, err := jwt.ParseWithClaims(
+		refreshTokenString,
+		&CustomClaims{},
+		func(t *jwt.Token) (interface{}, error) {
+			// Prevent Algorithm Confusion Attacks
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
+			return s.config.RefreshTokenSecret, nil
+		},
+		jwt.WithValidMethods([]string{"HS256"}),
+		jwt.WithIssuer(s.config.Issuer),
+		jwt.WithExpirationRequired(),
+	)
+
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrInvalidToken, err)
+	}
+
+	claims, ok := token.Claims.(*CustomClaims)
+	if !ok {
+		return ErrInvalidClaims
+	}
+
+	err = s.tokenStore.RevokeRefreshToken(ctx, claims.ID)
+
+	if err != nil {
+		return fmt.Errorf("Failed to revoke token: %w", err)
+	}
+
+	return nil
+}
+
+func (s *JWTService) VerifyRefreshToken(ctx context.Context, token string) (string, error) {
+	parsedToken, err := jwt.ParseWithClaims(
+		token,
+		&CustomClaims{},
+		func(t *jwt.Token) (interface{}, error) {
+			// Prevent Algorithm Confusion Attacks
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+			}
+			return s.config.RefreshTokenSecret, nil
+		},
+		jwt.WithValidMethods([]string{"HS256"}),
+		jwt.WithIssuer(s.config.Issuer),
+		jwt.WithExpirationRequired(),
+	)
+
+	if err != nil {
+		return "", fmt.Errorf("%w: %v", ErrInvalidToken, err)
+	}
+
+	claims, ok := parsedToken.Claims.(*CustomClaims)
+	if !ok || !parsedToken.Valid {
+		return "", ErrInvalidClaims
+	}
+
+	if claims.TokenType != "refresh" {
+		return "", ErrInvalidTokenType
+	}
+
+	return claims.UserID, nil
+}
+
 func (s *JWTService) GetConfig() Config {
 	return s.config
 }

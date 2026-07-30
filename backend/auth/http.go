@@ -2,6 +2,7 @@ package auth
 
 import (
 	"autora-backend/mw"
+	"autora-backend/token"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,8 @@ import (
 	"net/mail"
 	"strings"
 )
+
+const RefreshTokenName = "autora-refreshToken"
 
 // --- Structs for decoding received JSON
 // Data for login
@@ -31,7 +34,7 @@ type authHandler struct {
 
 func (a *authHandler) CreateRefreshTokenCookie(tokenValue string) *http.Cookie {
 	return &http.Cookie{
-		Name:  "autora-refreshToken",
+		Name:  RefreshTokenName,
 		Value: tokenValue,
 		// Domain as "" lets the browser automatically fill the domain
 		Domain:   "",
@@ -40,6 +43,18 @@ func (a *authHandler) CreateRefreshTokenCookie(tokenValue string) *http.Cookie {
 		SameSite: http.SameSiteStrictMode,
 		HttpOnly: true,
 		MaxAge:   a.refreshTokenTTL,
+	}
+}
+func (a *authHandler) CreateInvalidationCookie() *http.Cookie {
+	return &http.Cookie{
+		Name:     RefreshTokenName,
+		Value:    "",
+		Domain:   "",
+		Path:     "/api/auth/refresh",
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		HttpOnly: true,
+		MaxAge:   -1, // Deletes the cookie
 	}
 }
 
@@ -156,6 +171,121 @@ func (h *SignupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 func NewSignupHandler(s Service, refreshTokenTTL int) http.Handler {
 	handler := &SignupHandler{
+		authHandler: authHandler{
+			service:         s,
+			refreshTokenTTL: refreshTokenTTL,
+		},
+	}
+	return mw.CoreChain(handler, mw.Method("POST"))
+}
+
+// --- Refresh tokens
+type RefreshHandler struct {
+	authHandler
+}
+
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+func (h *RefreshHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// --- Get the refresh token
+	var refreshToken string
+	// Source 1 (preferred) - from cookie
+	cookie, err := r.Cookie(RefreshTokenName)
+	if err == nil {
+		refreshToken = cookie.Value
+	} else {
+		// Source 2 - in request body
+		var req RefreshRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			mw.SetErrorAsJSON(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+		refreshToken = req.RefreshToken
+	}
+
+	if refreshToken == "" {
+		mw.SetErrorAsJSON(w, "refresh token required", http.StatusBadRequest)
+		return
+	}
+
+	// --- Perform token refresh
+	tokens, err := h.service.VerifiedTokenRefresh(r.Context(), refreshToken)
+	if err != nil {
+		if errors.Is(err, token.ErrTokenRefused) {
+			mw.SetErrorAsJSON(w, "invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		if errors.Is(err, ErrNonExistingUser) {
+			mw.SetErrorAsJSON(w, "user not found", http.StatusUnauthorized)
+			return
+		}
+
+		slog.Error("Refresh tokens failed", "error", err)
+		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// --- Create response
+	// Set JSON as content type
+	w.Header().Set("Content-Type", "application/json")
+	// Overwrite the cookie with the new refresh token
+	http.SetCookie(w, h.CreateRefreshTokenCookie(tokens.RefreshToken))
+	// Put the access token in the body
+	json.NewEncoder(w).Encode(map[string]string{
+		"accessToken": tokens.AccessToken,
+	})
+}
+func NewRefreshHandler(s Service, refreshTokenTTL int) http.Handler {
+	handler := &RefreshHandler{
+		authHandler: authHandler{
+			service:         s,
+			refreshTokenTTL: refreshTokenTTL,
+		},
+	}
+	return mw.CoreChain(handler, mw.Method("POST"))
+}
+
+// --- Unset refresh cookies
+type LogoutHandler struct {
+	authHandler
+}
+
+func (h *LogoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// --- Get the refresh token
+	var refreshToken string
+	// Source 1 (preferred) - from cookie
+	cookie, err := r.Cookie(RefreshTokenName)
+	if err == nil {
+		refreshToken = cookie.Value
+	} else {
+		// Source 2 - in request body
+		var req RefreshRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			mw.SetErrorAsJSON(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+		refreshToken = req.RefreshToken
+	}
+
+	if refreshToken != "" {
+		// --- Invalidate token
+		// We have a refresh token to invalidate
+		// Log errors to find out what when wrong but don't handle them further
+		// as the performed action is a log out either way
+		err = h.service.tokenService.RevokeSingleRefreshToken(r.Context(), refreshToken)
+		if err != nil {
+			slog.Error("Logout token revocation failed", "error", err)
+		}
+	}
+
+	http.SetCookie(w, h.CreateInvalidationCookie())
+	w.WriteHeader(http.StatusNoContent)
+}
+func NewLogoutHandler(s Service, refreshTokenTTL int) http.Handler {
+	handler := &LogoutHandler{
 		authHandler: authHandler{
 			service:         s,
 			refreshTokenTTL: refreshTokenTTL,
