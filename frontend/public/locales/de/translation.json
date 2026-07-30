@@ -1,4 +1,15 @@
 {
+  "preauth": {
+    "titleLogin": "Anmelden",
+    "email": "E-Mail Addresse",
+    "emailPlaceholder": "max.mustermann@email.de",
+    "password": "Passwort",
+    "passwordPlaceholder": "Streng geheim...",
+    "passwordForgot": "Passwort vergessen?",
+    "loginSubmit": "Jetzt anmelden",
+    "noAccountYet": "Noch keinen Account?",
+    "registerNow": "Jetzt registrieren"
+  },
   "sidebar": {
     "navigation": "Navigation",
     "dashboard": "Dashboard",

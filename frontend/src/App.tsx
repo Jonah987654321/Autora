@@ -1,20 +1,37 @@
-import { BrowserRouter, Route, Routes } from "react-router";
+import { BrowserRouter, Outlet, Route, Routes } from "react-router";
 import { AppSidebar } from "./components/layout/Sidebar";
 import { SidebarProvider } from "./components/ui/sidebar";
 import PageDashboard from "./pages/PageDashboard";
+import { AuthProvider } from "./context/AuthContext";
+import { ProtectedLayout } from "./components/layout/ProtectdLayout";
+import PageLogin from "./pages/PageLogin";
 
 export default function App() {
   return (
     <>
       <BrowserRouter>
-        <SidebarProvider>
-          <AppSidebar />
-          <div className="flex-1">
-            <Routes>
-              <Route path="/" element={<PageDashboard />} />
-            </Routes>
-          </div>
-        </SidebarProvider>
+        <AuthProvider>
+          <Routes>
+            {/* PUBLIC ROUTES - no login required */}
+            <Route path="/login" element={<PageLogin />}/>
+
+            {/* PROTECTED ROUTES - only when logged in*/}
+            <Route element={<ProtectedLayout />}>
+              <Route
+                element={
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <div className="flex-1">
+                      <Outlet />
+                    </div>
+                  </SidebarProvider>
+                }
+              >
+                <Route path="/" element={<PageDashboard />} />
+              </Route>
+            </Route>
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </>
   );

@@ -1,4 +1,15 @@
 {
+  "preauth": {
+    "titleLogin": "Login",
+    "email": "Email Address",
+    "emailPlaceholder": "jane.doe@example.com",
+    "password": "Password",
+    "passwordPlaceholder": "superduper secret password",
+    "passwordForgot": "Forgot your password?",
+    "loginSubmit": "Log me in",
+    "noAccountYet": "Don't have an account?",
+    "registerNow": "Sign up now"
+  },
   "sidebar": {
     "navigation": "Navigation",
     "dashboard": "Dashboard",
