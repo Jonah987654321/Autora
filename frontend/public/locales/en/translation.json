@@ -1,14 +1,23 @@
 {
   "preauth": {
     "titleLogin": "Login",
+    "titleRegister": "Create new account",
     "email": "Email Address",
     "emailPlaceholder": "jane.doe@example.com",
-    "password": "Password",
+    "password": "Passwort",
+    "repeatPassword": "Repeat Password",
     "passwordPlaceholder": "superduper secret password",
     "passwordForgot": "Forgot your password?",
+    "passwordRequirement": "Password must be at least 8 characters long",
+    "passwordRepeatNoMatch": "Passwords do not match",
     "loginSubmit": "Log me in",
     "noAccountYet": "Don't have an account?",
-    "registerNow": "Sign up now"
+    "registerNow": "Sign up now",
+    "accountAlready": "Already have an account?",
+    "loginNow": "Login",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Jane Doe",
+    "registerSubmit": "Register now"
   },
   "sidebar": {
     "navigation": "Navigation",

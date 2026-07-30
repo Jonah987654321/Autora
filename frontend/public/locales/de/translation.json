@@ -1,14 +1,23 @@
 {
   "preauth": {
     "titleLogin": "Anmelden",
+    "titleRegister": "Neues Konto anlegen",
     "email": "E-Mail Addresse",
     "emailPlaceholder": "max.mustermann@email.de",
     "password": "Passwort",
+    "repeatPassword": "Passwort wiederholen",
     "passwordPlaceholder": "Streng geheim...",
     "passwordForgot": "Passwort vergessen?",
+    "passwordRequirement": "Passwort muss mindestens 8 Zeichen lang sein",
+    "passwordRepeatNoMatch": "Passwörter stimmen nicht überein",
     "loginSubmit": "Jetzt anmelden",
     "noAccountYet": "Noch keinen Account?",
-    "registerNow": "Jetzt registrieren"
+    "registerNow": "Jetzt registrieren",
+    "accountAlready": "Bereits einen Account erstellt?",
+    "loginNow": "Anmelden",
+    "fullName": "Vollständiger Name",
+    "fullNamePlaceholder": "Max Mustermann",
+    "registerSubmit": "Konto erstellen"
   },
   "sidebar": {
     "navigation": "Navigation",

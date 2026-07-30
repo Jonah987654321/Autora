@@ -6,16 +6,37 @@ export async function login(email: string, password: string) {
             "email": email,
             "password": password
         });
-        return response.data
+        return response.data;
     } catch (error) {
 
+    }
+}
+
+export async function register(fullName: string, email: string, password: string) {
+    try {
+        const response = await client.post("/auth/register", {
+            "email": email,
+            "password": password,
+            "fullName": fullName
+        });
+        return response.data;
+    } catch (error) {
+
+    }
+}
+
+export async function logout() {
+    try {
+        await client.post("/auth/logout");
+    } catch (error) {
+        
     }
 }
 
 export async function refresh() {
     try {
         const response = await client.post("/auth/refresh");
-        return response.data
+        return response.data;
     } catch (error) {
 
     }

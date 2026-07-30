@@ -49,7 +49,7 @@ export default function PageLogin() {
           </h1>
         </div>
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-5" onSubmit={handleSubmit}>
           <Field data-invalid={emailInvalid}>
             <FieldLabel htmlFor="input-email">{t("preauth.email")}</FieldLabel>
             <Input
@@ -65,7 +65,7 @@ export default function PageLogin() {
             />
           </Field>
 
-          <Field className="mt-5" data-invalid={passwordInvalid}>
+          <Field data-invalid={passwordInvalid}>
             <div className="flex items-center justify-between">
               <FieldLabel htmlFor="input-password">
                 {t("preauth.password")}

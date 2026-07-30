@@ -5,6 +5,8 @@ import PageDashboard from "./pages/PageDashboard";
 import { AuthProvider } from "./context/AuthContext";
 import { ProtectedLayout } from "./components/layout/ProtectdLayout";
 import PageLogin from "./pages/PageLogin";
+import PageRegister from "./pages/PageRegister";
+import { PublicOnlyLayout } from "./components/layout/PublicOnlyLayout";
 
 export default function App() {
   return (
@@ -13,7 +15,10 @@ export default function App() {
         <AuthProvider>
           <Routes>
             {/* PUBLIC ROUTES - no login required */}
-            <Route path="/login" element={<PageLogin />}/>
+            <Route element={<PublicOnlyLayout />}>
+              <Route path="/login" element={<PageLogin />} />
+              <Route path="/register" element={<PageRegister />} />
+            </Route>
 
             {/* PROTECTED ROUTES - only when logged in*/}
             <Route element={<ProtectedLayout />}>
