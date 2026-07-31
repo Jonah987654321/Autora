@@ -23,10 +23,12 @@ import {
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/context/AuthContext";
 
 export function AppSidebar() {
   const location = useLocation();
   const { t } = useTranslation();
+  const { logout } = useAuth();
 
   const entries = [
     {

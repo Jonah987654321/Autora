@@ -25,7 +25,15 @@ export async function logout() {
   await client.post("/auth/logout");
 }
 
-export async function refresh() {
-  const response = await client.post("/auth/refresh");
-  return response.data;
+let inFlightRefresh: Promise<{ accessToken: string }> | null = null;
+export function refresh() {
+    if (!inFlightRefresh) {
+        inFlightRefresh = client
+          .post("/auth/refresh")
+          .then((response) => response.data)
+          .finally(() => {
+            inFlightRefresh = null;
+          });
+    }
+    return inFlightRefresh;
 }

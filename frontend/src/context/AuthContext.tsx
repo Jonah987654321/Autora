@@ -38,19 +38,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const isAuthenticated = token !== null;
 
   useEffect(() => {
+    let ignore = false;
+
     apiRefresh()
       .then((data) => {
+        if (ignore) return;
         setToken(data.accessToken);
         localStorage.setItem("hadSession", "true");
       })
       .catch((error) => {
+        if (ignore) return;
         if (getErrorStatus(error) !== 401) {
           console.error("Silent refresh failed: ", error);
         }
         setToken(null);
         localStorage.removeItem("hadSession");
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (!ignore) setIsLoading(false)
+      });
+  
+    return () => {
+      ignore = true;
+    }
   }, []);
 
   const login = async (email: string, password: string) => {
