@@ -21,7 +21,7 @@ const (
 
 // AuthMiddleware creates an HTTP middleware that validates JWT tokens.
 // It extracts the token from the Authorization header and validates it.
-func AuthMiddleware(jwtService *JWTService) func(http.Handler) http.Handler {
+func AuthMiddleware(jwtService *JWTService) mw.Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Extract the Authorization header

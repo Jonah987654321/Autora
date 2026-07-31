@@ -65,9 +65,6 @@ type LoginHandler struct {
 }
 
 func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	//  To prevent abuse, limit body length to 1MB
-	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
-
 	var loginData LoginData
 	err := json.NewDecoder(r.Body).Decode(&loginData)
 	if err != nil {
@@ -119,9 +116,6 @@ type SignupHandler struct {
 }
 
 func (h *SignupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	//  To prevent abuse, limit body length to 1MB
-	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
-
 	// --- Parse data from JSON
 	var signupData SignupData
 	err := json.NewDecoder(r.Body).Decode(&signupData)

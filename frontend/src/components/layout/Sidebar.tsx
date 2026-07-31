@@ -38,6 +38,11 @@ export function AppSidebar() {
       icon: LayoutDashboard,
     },
     {
+      title: t("sidebar.semesters"),
+      url: "/semesters",
+      icon: Archive,
+    },
+    {
       title: t("sidebar.timeManagement"),
       url: "/time-management",
       icon: CalendarClock,
@@ -56,11 +61,6 @@ export function AppSidebar() {
       title: t("sidebar.files"),
       url: "/files",
       icon: FolderOpen,
-    },
-    {
-      title: t("sidebar.archive"),
-      url: "/archive",
-      icon: Archive,
     },
   ];
 
