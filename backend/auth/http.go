@@ -37,8 +37,9 @@ func (a *authHandler) CreateRefreshTokenCookie(tokenValue string) *http.Cookie {
 		Name:  RefreshTokenName,
 		Value: tokenValue,
 		// Domain as "" lets the browser automatically fill the domain
-		Domain:   "",
-		Path:     "/api/auth/refresh",
+		Domain: "",
+		// /api/auth because both refresh & logout need it
+		Path:     "/api/auth",
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 		HttpOnly: true,
@@ -50,7 +51,7 @@ func (a *authHandler) CreateInvalidationCookie() *http.Cookie {
 		Name:     RefreshTokenName,
 		Value:    "",
 		Domain:   "",
-		Path:     "/api/auth/refresh",
+		Path:     "/api/auth",
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 		HttpOnly: true,
