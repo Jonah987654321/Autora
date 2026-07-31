@@ -14,8 +14,9 @@ import {
 
 interface AuthContextType {
   token: string | null;
-  isAuthenticated: boolean;
   isLoading: boolean;
+  hadSession: boolean;
+  isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (fullName: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -31,12 +32,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [hadSession] = useState(() => localStorage.getItem("hadSession") === "true");
+
   const isAuthenticated = token !== null;
 
   useEffect(() => {
     apiRefresh()
-      .then((data) => setToken(data.accessToken))
-      .catch(() => setToken(null))
+      .then((data) => {
+        setToken(data.accessToken);
+        localStorage.setItem("hadSession", "true");
+      })
+      .catch(() => {
+        setToken(null);
+        localStorage.removeItem("hadSession");
+      })
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -63,7 +72,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   return (
     <AuthContext.Provider
-      value={{ token, isAuthenticated, isLoading, login, register, logout }}
+      value={{ token, isLoading, hadSession, isAuthenticated, login, register, logout }}
     >
       {children}
     </AuthContext.Provider>
