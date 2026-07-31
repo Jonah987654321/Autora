@@ -13,7 +13,7 @@ export async function register(
   email: string,
   password: string,
 ) {
-  const response = await client.post("/auth/register", {
+  const response = await client.post("/auth/signup", {
     email: email,
     password: password,
     fullName: fullName,
