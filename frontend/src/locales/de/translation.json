@@ -13,7 +13,7 @@
     "loginSubmit": "Jetzt anmelden",
     "noAccountYet": "Noch keinen Account?",
     "registerNow": "Jetzt registrieren",
-    "accountAlready": "Bereits einen Account erstellt?",
+    "accountAlready": "Du hast bereits einen Account?",
     "loginNow": "Anmelden",
     "fullName": "Vollständiger Name",
     "fullNamePlaceholder": "Max Mustermann",
@@ -31,7 +31,8 @@
     "files": "Dateien",
     "archive": "Archiv",
     "settings": "Einstellungen",
-    "recentLectures": "Letzte Vorlesungen"
+    "recentLectures": "Letzte Vorlesungen",
+    "logout": "Abmelden"
   },
   "dashboard": {
     "current": "Jetzt",

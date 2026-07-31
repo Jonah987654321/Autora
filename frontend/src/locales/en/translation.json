@@ -31,7 +31,8 @@
     "files": "Files",
     "archive": "Archive",
     "settings": "Settings",
-    "recentLectures": "Recent lectures"
+    "recentLectures": "Recent lectures",
+    "logout": "Log out"
   },
   "dashboard": {
     "current": "Now",

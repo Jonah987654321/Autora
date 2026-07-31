@@ -20,6 +20,7 @@ import {
   CalendarClock,
   FolderOpen,
   Archive,
+  LogOutIcon,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -107,6 +108,14 @@ export function AppSidebar() {
                 <Settings />
                 <span>{t("sidebar.settings")}</span>
               </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={(_) => logout()}
+            >
+                <LogOutIcon />
+                <span>{t("sidebar.logout")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

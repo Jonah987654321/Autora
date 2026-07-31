@@ -120,6 +120,7 @@ export default function PageRegister() {
               onChange={(e) => {
                 setEmail(e.target.value);
                 setEmailInvalid(false);
+                setGeneralError(null);
               }}
               onBlur={(e) => {
                 if (email === "" || !e.target.checkValidity()) {
