@@ -17,7 +17,10 @@
     "loginNow": "Login",
     "fullName": "Full name",
     "fullNamePlaceholder": "Jane Doe",
-    "registerSubmit": "Register now"
+    "registerSubmit": "Register now",
+    "invalidCredentials": "Invalid login credentials",
+    "serverError": "Server error or unreachable. Please try again later.",
+    "emailAlreadyRegistered": "This email is already registered"
   },
   "sidebar": {
     "navigation": "Navigation",

@@ -11,6 +11,7 @@ import {
   register as apiRegister,
   logout as apiLogout,
 } from "../api/auth";
+import { getErrorStatus } from "@/lib/errors";
 
 interface AuthContextType {
   token: string | null;
@@ -42,7 +43,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setToken(data.accessToken);
         localStorage.setItem("hadSession", "true");
       })
-      .catch(() => {
+      .catch((error) => {
+        if (getErrorStatus(error) !== 401) {
+          console.error("Silent refresh failed: ", error);
+        }
         setToken(null);
         localStorage.removeItem("hadSession");
       })
@@ -67,7 +71,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = () => {
     setToken(null);
-    apiLogout();
+    localStorage.removeItem("hadSession");
+    
+    apiLogout().catch((error) => {
+      console.error("Logout request failed: ", error);
+    });
   };
 
   return (

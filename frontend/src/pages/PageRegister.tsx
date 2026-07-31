@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
+import { getErrorStatus } from "@/lib/errors";
 
 export default function PageRegister() {
   const { t } = useTranslation();
@@ -25,8 +26,11 @@ export default function PageRegister() {
   const [passwordRepeatHintVisible, setPasswordRepeatHintVisible] =
     useState(false);
 
+  const [generalError, setGeneralError] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
+    setGeneralError(null);
 
     let isInvalid = false;
 
@@ -62,10 +66,14 @@ export default function PageRegister() {
     try {
       await register(fullName, email, password);
     } catch (error) {
-      setEmailInvalid(true);
-      setPasswordInvalid(true);
-      setFullNameInvalid(true);
-      console.error("Signup failed: ", error);
+      const status = getErrorStatus(error);
+      if (status === 409) {
+        setEmailInvalid(true);
+        setGeneralError(t("preauth.emailAlreadyRegistered"));
+      } else {
+        setGeneralError(t("preauth.serverError"));
+        console.error("Signup failed: ", error);
+      }
     }
   };
 
@@ -187,6 +195,10 @@ export default function PageRegister() {
             </FieldDescription>
           </Field>
 
+          {generalError && (
+            <p className="text-sm text-red-600 text-center">{generalError}</p>
+          )}
+
           <Button type="submit" className="w-full mt-7">
             {t("preauth.registerSubmit")}
           </Button>
@@ -197,7 +209,7 @@ export default function PageRegister() {
             {t("preauth.accountAlready")}{" "}
           </span>
           <NavLink
-            to="/register"
+            to="/login"
             className="font-medium text-primary hover:underline"
           >
             {t("preauth.loginNow")}

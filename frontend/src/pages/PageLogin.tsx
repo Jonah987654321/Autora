@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
+import { getErrorStatus } from "@/lib/errors";
 
 export default function PageLogin() {
   const { t } = useTranslation();
@@ -16,27 +17,33 @@ export default function PageLogin() {
   const [password, setPassword] = useState("");
   const [passwordInvalid, setPasswordInvalid] = useState(false);
 
+  const [generalError, setGeneralError] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
 
+    setGeneralError(null);
+
     if (email === "" || password === "") {
       // Don't call the ui unnecessarily
-      if (email === "") {
-        setEmailInvalid(true);
-      }
-
-      if (password === "") {
-        setPasswordInvalid(true);
-      }
+      if (email === "") setEmailInvalid(true);
+      if (password === "") setPasswordInvalid(true);
       return;
     }
 
     try {
       await login(email, password);
     } catch (error) {
-      setEmailInvalid(true);
-      setPasswordInvalid(true);
-      console.error("Login failed: ", error);
+      const status = getErrorStatus(error);
+
+      if (status === 401) {
+        setEmailInvalid(true);
+        setPasswordInvalid(true);
+        setGeneralError(t("preauth.invalidCredentials"));
+      } else {
+        console.error("Login failed: ", error);
+        setGeneralError(t("preauth.serverError"));
+      }
     }
   };
 
@@ -61,6 +68,11 @@ export default function PageLogin() {
               onChange={(e) => {
                 setEmail(e.target.value);
                 setEmailInvalid(false);
+              }}
+              onBlur={(e) => {
+                if (email === "" || !e.target.checkValidity()) {
+                  setEmailInvalid(true);
+                }
               }}
             />
           </Field>
@@ -87,8 +99,17 @@ export default function PageLogin() {
                 setPassword(e.target.value);
                 setPasswordInvalid(false);
               }}
+              onBlur={(e) => {
+                if (e.target.value === "") {
+                  setPasswordInvalid(true);
+                }
+              }}
             />
           </Field>
+
+          {generalError && (
+            <p className="text-sm text-red-600 text-center">{generalError}</p>
+          )}
 
           <Button type="submit" className="w-full mt-7">
             {t("preauth.loginSubmit")}
