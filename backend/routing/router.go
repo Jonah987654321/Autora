@@ -1,6 +1,7 @@
 package routing
 
 import (
+	"autora-backend/academic"
 	"autora-backend/auth"
 	"autora-backend/mw"
 	"autora-backend/token"
@@ -25,6 +26,16 @@ func CreateRouter(db *mongo.Database, jwtService *token.JWTService) *http.ServeM
 	router.Handle("/auth/signup", auth.NewSignupHandler(authService, refreshTokenTTL))
 	router.Handle("/auth/refresh", auth.NewRefreshHandler(authService, refreshTokenTTL))
 	router.Handle("/auth/logout", auth.NewLogoutHandler(authService, refreshTokenTTL))
+
+	// --- Auth middleware -> only authenticated users
+	authMW := token.AuthMiddleware(jwtService)
+
+	// --- Semester-related routes
+	academicsDB := &academic.MongoAcademicActions{
+		Database: db,
+	}
+	router.Handle("/academic/semester/create", academic.NewCreateSemesterHandler(authMW, academicsDB))
+	router.Handle("/academic/semester/get/", academic.NewGetSemesterHandler(authMW, academicsDB))
 
 	return router
 }

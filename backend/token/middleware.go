@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+var ErrNoClaimsInContext = errors.New("no claims found in context (missing auth middleware?)")
+
 // ContextKey is a custom type for context keys to avoid collisions.
 type ContextKey string
 
@@ -62,7 +64,10 @@ func AuthMiddleware(jwtService *JWTService) mw.Middleware {
 }
 
 // GetClaimsFromContext extracts the JWT claims from the request context.
-func GetClaimsFromContext(ctx context.Context) (*CustomClaims, bool) {
+func GetClaimsFromContext(ctx context.Context) (*CustomClaims, error) {
 	claims, ok := ctx.Value(ClaimsContextKey).(*CustomClaims)
-	return claims, ok
+	if !ok {
+		return nil, ErrNoClaimsInContext
+	}
+	return claims, nil
 }
