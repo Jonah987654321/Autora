@@ -8,7 +8,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strings"
 )
 
 type SemesterActions interface {
@@ -64,6 +63,7 @@ func (h *CreateSemesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		if errors.Is(err, ErrSemesterOverlapping) {
 			mw.SetErrorAsJSON(w, "Semesters cannot overlap", http.StatusConflict)
+			return
 		}
 
 		slog.Error("Create semester failed", "error", err)
@@ -83,15 +83,15 @@ func NewCreateSemesterHandler(authMiddleware mw.Middleware, actions SemesterActi
 			actions: actions,
 		},
 	}
-	return mw.CoreChain(handler, mw.Method("POST"), authMiddleware)
+	return mw.CoreChain(handler, authMiddleware)
 }
 
-// --- Handling for retrieving semesters
-type GetSemesterRequest struct {
+// --- Handling for retrieving all semesters
+type GetAllSemestersHandler struct {
 	SemesterHandler
 }
 
-func (h *GetSemesterRequest) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *GetAllSemestersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// --- Get userID
 	claims, err := token.GetClaimsFromContext(r.Context())
 	if err != nil {
@@ -101,61 +101,97 @@ func (h *GetSemesterRequest) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := claims.UserID
 
-	op := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/academic/semester/get/"), "/")
-
-	if op == "all" {
-		semesters, err := h.actions.GetAllSemesters(r.Context(), userID)
-		if err != nil {
-			slog.Error("Get all semesters failed", "error", err)
-			mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(semesters)
+	semesters, err := h.actions.GetAllSemesters(r.Context(), userID)
+	if err != nil {
+		slog.Error("Get all semesters failed", "error", err)
+		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if op == "active" {
-		activeSemesters, err := h.actions.GetActiveSemester(r.Context(), userID)
-		if err != nil {
-			slog.Error("Get current semester failed", "error", err)
-			mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(activeSemesters)
-		return
-	}
-
-	if strings.HasPrefix(op, "id/") {
-		id := strings.TrimPrefix(op, "id/")
-		matchedSemester, err := h.actions.GetSemesterByID(r.Context(), userID, id)
-
-		if err != nil {
-			if errors.Is(err, ErrNoSuchSemester) {
-				http.NotFound(w, r)
-				return
-			}
-
-			slog.Error("Get semester by id failed", "error", err, "semesterId", id)
-			mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(matchedSemester)
-		return
-	}
-
-	http.NotFound(w, r)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(semesters)
 }
-func NewGetSemesterHandler(authMiddleware mw.Middleware, actions SemesterActions) http.Handler {
-	handler := &GetSemesterRequest{
+func NewGetAllSemestersHandler(authMiddleware mw.Middleware, actions SemesterActions) http.Handler {
+	handler := &GetAllSemestersHandler{
 		SemesterHandler: SemesterHandler{
 			actions: actions,
 		},
 	}
-	return mw.CoreChain(handler, mw.Method("GET"), authMiddleware)
+	return mw.CoreChain(handler, authMiddleware)
+}
+
+// --- Handle retrieving the current semester
+type GetActiveSemesterHandler struct {
+	SemesterHandler
+}
+
+func (h *GetActiveSemesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// --- Get userID
+	claims, err := token.GetClaimsFromContext(r.Context())
+	if err != nil {
+		slog.Error("missing token claims in context")
+		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userID := claims.UserID
+
+	activeSemesters, err := h.actions.GetActiveSemester(r.Context(), userID)
+	if err != nil {
+		slog.Error("Get current semester failed", "error", err)
+		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(activeSemesters)
+}
+func NewGetActiveSemesterHandler(authMiddleware mw.Middleware, actions SemesterActions) http.Handler {
+	handler := &GetActiveSemesterHandler{
+		SemesterHandler: SemesterHandler{
+			actions: actions,
+		},
+	}
+	return mw.CoreChain(handler, authMiddleware)
+}
+
+// Handle retrieving a single semester by id
+type GetSemesterByIDHandler struct {
+	SemesterHandler
+}
+
+func (h *GetSemesterByIDHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// --- Get userID
+	claims, err := token.GetClaimsFromContext(r.Context())
+	if err != nil {
+		slog.Error("missing token claims in context")
+		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userID := claims.UserID
+
+	id := r.PathValue("id")
+
+	matchedSemester, err := h.actions.GetSemesterByID(r.Context(), userID, id)
+
+	if err != nil {
+		if errors.Is(err, ErrNoSuchSemester) {
+			mw.SetErrorAsJSON(w, "semester not found", http.StatusNotFound)
+			return
+		}
+
+		slog.Error("Get semester by id failed", "error", err, "semesterId", id)
+		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(matchedSemester)
+}
+func NewGetSemesterByIDHandler(authMiddleware mw.Middleware, actions SemesterActions) http.Handler {
+	handler := &GetSemesterByIDHandler{
+		SemesterHandler: SemesterHandler{
+			actions: actions,
+		},
+	}
+	return mw.CoreChain(handler, authMiddleware)
 }

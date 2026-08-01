@@ -107,7 +107,7 @@ func NewLoginHandler(s Service, refreshTokenTTL int) http.Handler {
 			refreshTokenTTL: refreshTokenTTL,
 		},
 	}
-	return mw.CoreChain(handler, mw.Method("POST"))
+	return mw.CoreChain(handler)
 }
 
 // --- Create user accounts
@@ -171,7 +171,7 @@ func NewSignupHandler(s Service, refreshTokenTTL int) http.Handler {
 			refreshTokenTTL: refreshTokenTTL,
 		},
 	}
-	return mw.CoreChain(handler, mw.Method("POST"))
+	return mw.CoreChain(handler)
 }
 
 // --- Refresh tokens
@@ -240,7 +240,7 @@ func NewRefreshHandler(s Service, refreshTokenTTL int) http.Handler {
 			refreshTokenTTL: refreshTokenTTL,
 		},
 	}
-	return mw.CoreChain(handler, mw.Method("POST"))
+	return mw.CoreChain(handler)
 }
 
 // --- Unset refresh cookies
@@ -286,5 +286,5 @@ func NewLogoutHandler(s Service, refreshTokenTTL int) http.Handler {
 			refreshTokenTTL: refreshTokenTTL,
 		},
 	}
-	return mw.CoreChain(handler, mw.Method("POST"))
+	return mw.CoreChain(handler)
 }

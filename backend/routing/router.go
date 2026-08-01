@@ -22,10 +22,10 @@ func CreateRouter(db *mongo.Database, jwtService *token.JWTService) *http.ServeM
 	}
 	authService := auth.NewService(authDB, jwtService)
 	refreshTokenTTL := int(jwtService.GetConfig().RefreshTokenTTL.Seconds())
-	router.Handle("/auth/login", auth.NewLoginHandler(authService, refreshTokenTTL))
-	router.Handle("/auth/signup", auth.NewSignupHandler(authService, refreshTokenTTL))
-	router.Handle("/auth/refresh", auth.NewRefreshHandler(authService, refreshTokenTTL))
-	router.Handle("/auth/logout", auth.NewLogoutHandler(authService, refreshTokenTTL))
+	router.Handle("POST /auth/login", auth.NewLoginHandler(authService, refreshTokenTTL))
+	router.Handle("POST /auth/signup", auth.NewSignupHandler(authService, refreshTokenTTL))
+	router.Handle("POST /auth/refresh", auth.NewRefreshHandler(authService, refreshTokenTTL))
+	router.Handle("POST /auth/logout", auth.NewLogoutHandler(authService, refreshTokenTTL))
 
 	// --- Auth middleware -> only authenticated users
 	authMW := token.AuthMiddleware(jwtService)
@@ -34,8 +34,10 @@ func CreateRouter(db *mongo.Database, jwtService *token.JWTService) *http.ServeM
 	academicsDB := &academic.MongoAcademicActions{
 		Database: db,
 	}
-	router.Handle("/academic/semester/create", academic.NewCreateSemesterHandler(authMW, academicsDB))
-	router.Handle("/academic/semester/get/", academic.NewGetSemesterHandler(authMW, academicsDB))
+	router.Handle("POST /academic/semesters", academic.NewCreateSemesterHandler(authMW, academicsDB))
+	router.Handle("GET /academic/semesters", academic.NewGetAllSemestersHandler(authMW, academicsDB))
+	router.Handle("GET /academic/semesters/active", academic.NewGetActiveSemesterHandler(authMW, academicsDB))
+	router.Handle("GET /academic/semesters/{id}", academic.NewGetSemesterByIDHandler(authMW, academicsDB))
 
 	return router
 }
