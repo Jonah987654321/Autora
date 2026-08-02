@@ -1,4 +1,4 @@
-import client from "./client";
+import { client } from "./client";
 
 export async function login(email: string, password: string) {
   const response = await client.post("/auth/login", {
