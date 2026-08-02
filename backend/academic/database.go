@@ -8,6 +8,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 const COLLECTION_SEMESTERS = "semesters"
@@ -90,10 +91,11 @@ func (a *MongoAcademicActions) GetAllSemesters(ctx context.Context, userID strin
 	}
 
 	filter := bson.M{"userID": userObjectId}
+	findOptions := options.Find().SetSort(bson.D{{Key: "startDate", Value: -1}})
 
 	dbCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
 	defer cancel()
-	res, err := a.Database.Collection(COLLECTION_SEMESTERS).Find(dbCtx, filter)
+	res, err := a.Database.Collection(COLLECTION_SEMESTERS).Find(dbCtx, filter, findOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch from database: %w", err)
 	}
