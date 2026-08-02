@@ -54,6 +54,7 @@
     "selectFromLeft": "Please select a semester from the left side",
     "semesterAmount_one": "Found {{count}} semester",
     "semesterAmount_other": "Found {{count}} semesters",
+    "duration": "From {{start}} until {{end}}",
     "newDialog": {
       "heading": "Create new semester",
       "description": "Dates must not overlap with existing semesters",

@@ -1,5 +1,6 @@
 import { format, type Locale } from "date-fns";
 import { Badge } from "../ui/badge";
+import { useTranslation } from "react-i18next";
 
 interface SemesterProps {
   semesterName: string;
@@ -14,6 +15,7 @@ export default function Semester({
   end,
   locale,
 }: SemesterProps) {
+  const { t } = useTranslation();
   const now = new Date();
   return (
     <div className="bg-transparent hover:bg-accent cursor-pointer p-5">
@@ -21,11 +23,21 @@ export default function Semester({
         <div className="flex-1 text-base font-medium text-foreground">
           {semesterName}
         </div>
-        <div>{start <= now && now <= end ? <Badge className="bg-green-200 text-green-700 dark:bg-green-950 dark:text-green-300">Laufend</Badge> : <></>}</div>
+        <div>
+          {start <= now && now <= end ? (
+            <Badge className="bg-green-200 text-green-700 dark:bg-green-950 dark:text-green-300">
+              Laufend
+            </Badge>
+          ) : (
+            <></>
+          )}
+        </div>
       </div>
       <div className="text-sm text-muted-foreground">
-        From {format(start, "PPP", { locale: locale })} until{" "}
-        {format(end, "PPP", { locale: locale })}
+        {t("semesters.duration", {
+          start: format(start, "PPP", { locale: locale }),
+          end: format(end, "PPP", { locale: locale }),
+        })}
       </div>
     </div>
   );
