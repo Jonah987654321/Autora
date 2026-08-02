@@ -43,5 +43,23 @@
     "calendarNewEntry": "New Entry",
     "toDoList": "To-Do List",
     "toDoListNewEntry": "New To-Do"
+  },
+  "semesters": {
+    "heading": "Manage your semesters",
+    "search": "Search for a semester by name...",
+    "new": "Create new",
+    "loading": "Loading semesters...",
+    "error": "An error occurred when trying to load semesters. Please retry later.",
+    "noSemesters": "You haven't created semesters yet. How about creating one?",
+    "newDialog": {
+      "heading": "Create new semester",
+      "description": "Dates must not overlap with existing semesters",
+      "submit": "Create",
+      "semesterName": "Name",
+      "semesterNamePlaceholder": "E.g., Winter Semester 2025/26",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "pickDate": "Pick a date"
+    }
   }
 }

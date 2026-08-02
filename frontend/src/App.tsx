@@ -7,6 +7,7 @@ import { ProtectedLayout } from "./components/layout/ProtectdLayout";
 import PageLogin from "./pages/PageLogin";
 import PageRegister from "./pages/PageRegister";
 import { PublicOnlyLayout } from "./components/layout/PublicOnlyLayout";
+import PageSemester from "./pages/PageSemesters";
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
                 }
               >
                 <Route path="/" element={<PageDashboard />} />
+                <Route path="/semesters" element={<PageSemester />} />
               </Route>
             </Route>
           </Routes>
