@@ -26,10 +26,11 @@ func (t JBsonTime) MarshalJSON() ([]byte, error) {
 	return []byte(formatted), nil
 }
 
-func (t JBsonTime) MarshalBSONValue() (bson.Type, []byte, error) {
-	return bson.MarshalValue(t.Time)
+func (t JBsonTime) MarshalBSONValue() (byte, []byte, error) {
+	tpe, data, err := bson.MarshalValue(t.Time)
+	return byte(tpe), data, err
 }
 
-func (t *JBsonTime) UnmarshalBSONValue(tpe bson.Type, data []byte) error {
-	return bson.UnmarshalValue(tpe, data, &t.Time)
+func (t *JBsonTime) UnmarshalBSONValue(tpe byte, data []byte) error {
+	return bson.UnmarshalValue(bson.Type(tpe), data, &t.Time)
 }
