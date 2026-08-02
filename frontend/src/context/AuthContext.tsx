@@ -3,6 +3,8 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -38,6 +40,7 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
+  const tokenRef = useRef<string|null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const [hadSession] = useState(
@@ -45,6 +48,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 
   const isAuthenticated = token !== null;
+
+  useLayoutEffect(() => {
+    tokenRef.current = token
+  }, [token]);
 
   useEffect(() => {
     let ignore = false;
@@ -73,20 +80,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   useEffect(() => {
-    let interceptorAttachToken = refreshClient.interceptors.request.use(
+    refreshClient.interceptors.request.use(
       function (config: CustomAxiosRequestConfig) {
-
-        console.log(token, config._retried)
-
-        if (token !== null && !config._retried) {
-          config.headers.Authorization = "Bearer " + token;
+        if (tokenRef.current !== null && !config._retried) {
+          config.headers.Authorization = "Bearer " + tokenRef.current;
         }
-        return config
+        return config;
       },
-      null
+      null,
     );
 
-    let interceptorRefreshToken = refreshClient.interceptors.response.use(
+    refreshClient.interceptors.response.use(
       null,
       async function (error: AxiosError) {
         // Error without server response => pass through (e.g., network error)
@@ -107,10 +111,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
             let data = await apiRefresh();
             setToken(data.accessToken);
 
-            originalRequest.headers.Authorization = "Bearer " + data.accessToken;
+            originalRequest.headers.Authorization =
+              "Bearer " + data.accessToken;
             return refreshClient.request(originalRequest);
           } catch (refreshError: any) {
-            if (refreshError.response !== undefined && refreshError.response.status == 401) {
+            if (
+              refreshError.response !== undefined &&
+              refreshError.response.status == 401
+            ) {
               // Refresh is unauthorized => log out
               logout();
               return Promise.reject(refreshError);
@@ -125,12 +133,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return Promise.reject(error);
       },
     );
-
-    return () => {
-      refreshClient.interceptors.request.eject(interceptorAttachToken);
-      refreshClient.interceptors.response.eject(interceptorRefreshToken);
-    };
-  }, [token]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     const data = await apiLogin(email, password);
