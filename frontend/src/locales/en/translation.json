@@ -51,6 +51,9 @@
     "loading": "Loading semesters...",
     "error": "An error occurred when trying to load semesters. Please retry later.",
     "noSemesters": "You haven't created semesters yet. How about creating one?",
+    "selectFromLeft": "Please select a semester from the left side",
+    "semesterAmount_one": "Found {{count}} semester",
+    "semesterAmount_other": "Found {{count}} semesters",
     "newDialog": {
       "heading": "Create new semester",
       "description": "Dates must not overlap with existing semesters",
@@ -59,7 +62,10 @@
       "semesterNamePlaceholder": "E.g., Winter Semester 2025/26",
       "startDate": "Start date",
       "endDate": "End date",
-      "pickDate": "Pick a date"
+      "pickDate": "Pick a date",
+      "datePeriodInvalid": "Start date cannot be after end date.",
+      "serverError": "Server error or unreachable. Please try again later.",
+      "overlappingWithExisting": "The date period is overlapping with an already existing semester."
     }
   }
 }

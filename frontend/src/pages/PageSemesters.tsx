@@ -1,4 +1,4 @@
-import { loadAllSemesters } from "@/api/academic";
+import { createSemester, loadAllSemesters } from "@/api/academic";
 import Semester from "@/components/specific/semester";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
+import { getErrorStatus } from "@/lib/errors";
+import axios from "axios";
 import { format } from "date-fns";
 import { de, enUS } from "date-fns/locale";
 import {
@@ -33,6 +35,7 @@ import {
   ChevronDown,
   CircleX,
   GraduationCap,
+  Loader,
   MousePointerClick,
   Plus,
   SearchIcon,
@@ -53,41 +56,132 @@ export default function PageSemester() {
   const currentLocale = i18n.language.startsWith("de") ? de : enUS;
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [blockCreateDialogClosing, setBlockCreateDialogClosing] =
+    useState(false);
 
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
+  const [startDateInvalid, setStartDateInvalid] = useState(false);
+  const [endDateInvalid, setEndDateInvalid] = useState(false);
+  const [datePeriodInvalid, setDatePeriodInvalid] = useState(false);
+  const [newSemesterName, setNewSemesterName] = useState("");
+  const [newSemesterNameInvalid, setNewSemesterNameInvalid] = useState(false);
+
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createServerError, setCreateServerError] = useState(false);
+  const [overlappingWithExisting, setOverlappingWithExisting] = useState(false);
 
   const [semestersLoading, setSemestersLoading] = useState(true);
   const [semesters, setSemesters] = useState<SemesterData[]>([]);
   const [loadingError, setLoadingError] = useState(false);
 
-  useEffect(() => {
-    let ignore = false;
+  const fetchSemesters = async (signal?: AbortSignal) => {
     setSemestersLoading(true);
-
-    const loadSemesters = async () => {
-      try {
-        const data = await loadAllSemesters();
-
-        if (!ignore) {
-          setSemesters(data);
-        }
-      } catch (error) {
-        setLoadingError(true);
-        console.error("Error loading semesters:", error);
-      } finally {
-        if (!ignore) {
-          setSemestersLoading(false);
-        }
+    try {
+      const data = await loadAllSemesters(signal);
+      setSemesters(data);
+    } catch (error: any) {
+      if (axios.isCancel(error)) {
+        return;
       }
-    };
+      setLoadingError(true);
+      console.error("Error loading semesters:", error);
+    } finally {
+      setSemestersLoading(false);
+    }
+  };
 
-    loadSemesters();
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetchSemesters(controller.signal);
 
     return () => {
-      ignore = true;
+      controller.abort();
     };
   }, []);
+
+  const resetCreateDialog = () => {
+    setStartDate(undefined);
+    setStartDateInvalid(false);
+    setEndDate(undefined);
+    setEndDateInvalid(false);
+    setNewSemesterName("");
+    setNewSemesterNameInvalid(false);
+    setDatePeriodInvalid(false);
+    setCreateLoading(false);
+    setCreateServerError(false);
+    setBlockCreateDialogClosing(false);
+    setOverlappingWithExisting(false);
+  };
+
+  const toggleNewDialog = (open: boolean) => {
+    if (blockCreateDialogClosing) {
+      return;
+    }
+
+    setCreateDialogOpen(open);
+    if (!open) {
+      resetCreateDialog();
+    }
+  };
+
+  const submitNewDialog = async () => {
+    let abortSubmit = false;
+
+    if (newSemesterName === "") {
+      setNewSemesterNameInvalid(true);
+      abortSubmit = true;
+    }
+
+    if (startDate === undefined) {
+      setStartDateInvalid(true);
+      abortSubmit = true;
+    }
+    if (endDate === undefined) {
+      setEndDateInvalid(true);
+      abortSubmit = true;
+    }
+
+    if (
+      endDate !== undefined &&
+      startDate !== undefined &&
+      startDate > endDate
+    ) {
+      setDatePeriodInvalid(true);
+      abortSubmit = true;
+    }
+
+    if (abortSubmit) {
+      return;
+    }
+
+    setBlockCreateDialogClosing(true);
+    setCreateLoading(true);
+
+    let startDateActual = startDate as Date;
+    let endDateActual = endDate as Date;
+
+    try {
+      const data = await createSemester(
+        newSemesterName,
+        startDateActual,
+        endDateActual,
+      );
+      toggleNewDialog(false);
+      await fetchSemesters();
+    } catch (error) {
+      const status = getErrorStatus(error);
+      if (status === 409) {
+        setOverlappingWithExisting(true);
+      } else {
+        console.error("failed to create semester: ", error);
+        setCreateServerError(true);
+      }
+      setCreateLoading(false);
+      setBlockCreateDialogClosing(false);
+    }
+  };
 
   return (
     <div className="p-6 flex flex-col h-dvh">
@@ -104,7 +198,7 @@ export default function PageSemester() {
           </InputGroup>
         </div>
         <div>
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <Dialog open={createDialogOpen} onOpenChange={toggleNewDialog}>
             <DialogTrigger asChild>
               <Button>
                 <Plus /> {t("semesters.new")}
@@ -123,10 +217,16 @@ export default function PageSemester() {
                     {t("semesters.newDialog.semesterName")}
                   </FieldLabel>
                   <Input
+                    value={newSemesterName}
                     id="input-semesterName"
+                    aria-invalid={newSemesterNameInvalid}
                     placeholder={t(
                       "semesters.newDialog.semesterNamePlaceholder",
                     )}
+                    onChange={(e) => {
+                      setNewSemesterNameInvalid(false);
+                      setNewSemesterName(e.target.value);
+                    }}
                   />
                 </Field>
                 <Field>
@@ -135,8 +235,9 @@ export default function PageSemester() {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
+                        aria-invalid={startDateInvalid || datePeriodInvalid}
                         data-empty={!startDate}
-                        className="w-[212px] justify-between text-left font-normal data-[empty=true]:text-muted-foreground"
+                        className="w-53 justify-between text-left font-normal data-[empty=true]:text-muted-foreground"
                       >
                         {startDate ? (
                           format(startDate, "PPP", { locale: currentLocale })
@@ -150,7 +251,11 @@ export default function PageSemester() {
                       <Calendar
                         mode="single"
                         selected={startDate}
-                        onSelect={setStartDate}
+                        onSelect={(date) => {
+                          setStartDateInvalid(false);
+                          setDatePeriodInvalid(false);
+                          return setStartDate(date);
+                        }}
                         defaultMonth={startDate}
                         locale={currentLocale}
                       />
@@ -163,8 +268,9 @@ export default function PageSemester() {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
+                        aria-invalid={endDateInvalid || datePeriodInvalid}
                         data-empty={!endDate}
-                        className="w-[212px] justify-between text-left font-normal data-[empty=true]:text-muted-foreground"
+                        className="w-53 justify-between text-left font-normal data-[empty=true]:text-muted-foreground"
                       >
                         {endDate ? (
                           format(endDate, "PPP", { locale: currentLocale })
@@ -178,7 +284,11 @@ export default function PageSemester() {
                       <Calendar
                         mode="single"
                         selected={endDate}
-                        onSelect={setEndDate}
+                        onSelect={(date) => {
+                          setEndDateInvalid(false);
+                          setDatePeriodInvalid(false);
+                          return setEndDate(date);
+                        }}
                         defaultMonth={endDate}
                         locale={currentLocale}
                       />
@@ -186,9 +296,36 @@ export default function PageSemester() {
                   </Popover>
                 </Field>
               </FieldGroup>
+              <div
+                className={
+                  datePeriodInvalid ? "text-destructive text-center" : "hidden"
+                }
+              >
+                {t("semesters.newDialog.datePeriodInvalid")}
+              </div>
+              <div
+                className={
+                  overlappingWithExisting ? "text-destructive text-center" : "hidden"
+                }
+              >
+                {t("semesters.newDialog.overlappingWithExisting")}
+              </div>
+              <div
+                className={
+                  createServerError ? "text-destructive text-center" : "hidden"
+                }
+              >
+                {t("semesters.newDialog.serverError")}
+              </div>
               <DialogFooter>
-                <Button>
-                  <Check /> {t("semesters.newDialog.submit")}
+                <Button onClick={(_) => submitNewDialog()}>
+                  {createLoading ? (
+                    <Loader />
+                  ) : (
+                    <>
+                      <Check /> {t("semesters.newDialog.submit")}
+                    </>
+                  )}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -221,9 +358,7 @@ export default function PageSemester() {
         <div>
           <CircleX className="text-red-400 size-10 stroke-1" />
         </div>
-        <div className="text-red-400 mt-5 mb-5">
-          {t("semesters.error")}
-        </div>
+        <div className="text-red-400 mt-5 mb-5">{t("semesters.error")}</div>
       </div>
       <div
         className={
@@ -252,45 +387,19 @@ export default function PageSemester() {
         }
       >
         <div>
-          <h2>Found 6 semesters:</h2>
+          <h2>{t("semesters.semesterAmount", { count: semesters.length })}</h2>
           <ScrollArea className="mt-3 pr-4">
             <div className="divide-y divide-border">
-              <Semester
-                locale={currentLocale}
-                semesterName="Sommersemester 2026"
-                start={new Date("2026-04-01")}
-                end={new Date("2026-09-30")}
-              />
-              <Semester
-                locale={currentLocale}
-                semesterName="Wintersemester 2025/26"
-                start={new Date("2025-10-01")}
-                end={new Date("2026-03-31")}
-              />
-              <Semester
-                locale={currentLocale}
-                semesterName="Sommersemester 2025"
-                start={new Date("2025-04-01")}
-                end={new Date("2025-09-30")}
-              />
-              <Semester
-                locale={currentLocale}
-                semesterName="Wintersemester 2024/25"
-                start={new Date("2024-10-01")}
-                end={new Date("2025-03-31")}
-              />
-              <Semester
-                locale={currentLocale}
-                semesterName="Sommersemester 2024"
-                start={new Date("2024-04-01")}
-                end={new Date("2024-09-30")}
-              />
-              <Semester
-                locale={currentLocale}
-                semesterName="Wintersemester 2023/24"
-                start={new Date("2023-10-01")}
-                end={new Date("2024-03-31")}
-              />
+              {semesters.map((s) => {
+                return (
+                  <Semester
+                    locale={currentLocale}
+                    semesterName={s.name}
+                    start={new Date(s.startDate)}
+                    end={new Date(s.endDate)}
+                  />
+                );
+              })}
             </div>
           </ScrollArea>
         </div>
@@ -303,7 +412,7 @@ export default function PageSemester() {
               <MousePointerClick className="text-muted-foreground size-10 stroke-1" />
             </div>
             <div className="text-muted-foreground mt-5">
-              Please select a semester from the left side
+              {t("semesters.selectFromLeft")}
             </div>
           </div>
         </div>

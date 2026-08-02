@@ -15,9 +15,40 @@ services:
       # Default to 80 for production, overwrite in dev mode
       FRONTEND_PORT: ${FRONTEND_PORT:-80}
 
+  # --- MongoDB services
+  # production
   mongodb:
+    profiles: ["production"]
     image: mongo:latest
     restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - mongodb_host
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ADMIN_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE_NAME}
+
+      # Pass through for init script
+      MONGO_USER_NAME: ${MONGO_USER_NAME}
+      MONGO_USER_PWD: ${MONGO_USER_PWD}
+    volumes:
+      # Persistent data
+      - mongodb_data:/data/db
+      # Init script
+      - ./docker/mongodb/init.js:/docker-entrypoint-initdb.d/init.js:ro
+  # development, exposed port
+  mongodb-dev:
+    profiles: ["development"]
+    image: mongo:latest
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - mongodb_host
+    ports:
+      - 27017:27017
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ADMIN_PASSWORD}
@@ -57,7 +88,7 @@ services:
     env_file:
       - .env
     depends_on:
-      - mongodb
+      - mongodb-dev
     restart: unless-stopped
     volumes:
       - ./backend:/app
