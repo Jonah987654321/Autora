@@ -1,12 +1,14 @@
 import { format, type Locale } from "date-fns";
 import { Badge } from "../ui/badge";
 import { useTranslation } from "react-i18next";
+import type { MouseEventHandler } from "react";
 
 interface SemesterProps {
   semesterName: string;
   start: Date;
   end: Date;
   locale?: Locale;
+  onClick?: MouseEventHandler;
 }
 
 export default function Semester({
@@ -14,11 +16,12 @@ export default function Semester({
   start,
   end,
   locale,
+  onClick
 }: SemesterProps) {
   const { t } = useTranslation();
   const now = new Date();
   return (
-    <div className="bg-transparent hover:bg-accent cursor-pointer p-5">
+    <div className="bg-transparent hover:bg-accent cursor-pointer p-5" onClick={onClick}>
       <div className="flex">
         <div className="flex-1 text-base font-medium text-foreground">
           {semesterName}

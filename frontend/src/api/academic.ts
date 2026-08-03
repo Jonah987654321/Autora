@@ -16,3 +16,12 @@ export async function createSemester(name: string, startDate: Date, endDate: Dat
     })
     return response.data
 }
+
+export async function editSemester(id: string, name: string, startDate: Date, endDate: Date) {
+    const response = await refreshClient.put(`/academic/semesters/${id}`, {
+        name: name,
+        startDate: format(startDate, "yyyy-MM-dd"),
+        endDate: format(endDate, "yyyy-MM-dd")
+    })
+    return response.data
+}

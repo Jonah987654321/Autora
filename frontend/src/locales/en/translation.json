@@ -56,9 +56,11 @@
     "semesterAmount_other": "Found {{count}} semesters",
     "duration": "From {{start}} until {{end}}",
     "newDialog": {
-      "heading": "Create new semester",
+      "titleNew": "Create new semester",
+      "titleEdit": "Edit semester",
       "description": "Dates must not overlap with existing semesters",
-      "submit": "Create",
+      "submitNew": "Create",
+      "submitEdit": "Save changes",
       "semesterName": "Name",
       "semesterNamePlaceholder": "E.g., Winter Semester 2025/26",
       "startDate": "Start date",
@@ -67,6 +69,17 @@
       "datePeriodInvalid": "Start date cannot be after end date.",
       "serverError": "Server error or unreachable. Please try again later.",
       "overlappingWithExisting": "The date period is overlapping with an already existing semester."
+    },
+    "detailView": {
+      "modules": "Courses",
+      "newModule": "Add course",
+      "deleteDialog": {
+        "title": "Delete semester?",
+        "description": "You can not restore a deleted semester. This also deletes all modules in this semester and their content.",
+        "target": "You are deleting the following semester: ",
+        "confirm": "Delete permanently",
+        "cancel": "Cancel"
+      }
     }
   }
 }
