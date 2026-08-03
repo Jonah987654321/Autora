@@ -30,12 +30,16 @@ var (
 	ErrNoSuchSemester      = errors.New("no matching semester")
 )
 
-func (a *MongoAcademicActions) doesSemesterOverlap(ctx context.Context, userID bson.ObjectID, start, end time.Time) (bool, error) {
+func (a *MongoAcademicActions) doesSemesterOverlap(ctx context.Context, userID bson.ObjectID, start, end time.Time, exclude *bson.ObjectID) (bool, error) {
 	findOverlapping := bson.M{"$and": bson.A{
 		bson.M{"userID": userID},
 		bson.M{"startDate": bson.M{"$lte": end}},
 		bson.M{"endDate": bson.M{"$gte": start}},
 	}}
+
+	if exclude != nil {
+        findOverlapping["_id"] = bson.M{"$ne": *exclude}
+    }
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
@@ -57,7 +61,7 @@ func (a *MongoAcademicActions) CreateSemester(ctx context.Context, userID string
 		return "", fmt.Errorf("failed to convert userID to ObjectID: %w", err)
 	}
 
-	overlapping, err := a.doesSemesterOverlap(ctx, userObjectId, data.StartDate.Time, data.EndDate.Time)
+	overlapping, err := a.doesSemesterOverlap(ctx, userObjectId, data.StartDate.Time, data.EndDate.Time, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to check for overlapping semesters: %w", err)
 	}
@@ -171,4 +175,53 @@ func (a *MongoAcademicActions) GetSemesterByID(ctx context.Context, userID, seme
 	}
 
 	return &semester, nil
+}
+
+func (a *MongoAcademicActions) EditSemester(ctx context.Context, userID, semesterID string, data EditSemesterRequest) (*Semester, error) {
+	userObjectId, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert userID to ObjectID: %w", err)
+	}
+	semesterObjectID, err := bson.ObjectIDFromHex(semesterID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert semesterID to ObjectID: %w", err)
+	}
+
+	overlapping, err := a.doesSemesterOverlap(ctx, userObjectId, data.StartDate.Time, data.EndDate.Time, &semesterObjectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for overlapping semesters: %w", err)
+	}
+	if overlapping {
+		return nil, ErrSemesterOverlapping
+	}
+
+	filter := bson.M{
+		"_id":    semesterObjectID,
+		"userID": userObjectId,
+	}
+	updateOp := bson.M{
+		"$set": bson.M{
+			"name":      data.Name,
+			"startDate": data.StartDate,
+			"endDate":   data.EndDate,
+		},
+	}
+
+	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	res, err := a.Database.Collection(COLLECTION_SEMESTERS).UpdateOne(dbCtx, filter, updateOp)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to update database: %w", err)
+	}
+	if res.MatchedCount == 0 {
+		return nil, ErrNoSuchSemester
+	}
+
+	return &Semester{
+		ID:        semesterObjectID,
+		UserID:    userObjectId,
+		Name:      data.Name,
+		StartDate: data.StartDate,
+		EndDate:   data.EndDate,
+	}, nil
 }

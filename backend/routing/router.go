@@ -38,6 +38,7 @@ func CreateRouter(db *mongo.Database, jwtService *token.JWTService) *http.ServeM
 	router.Handle("GET /academic/semesters", academic.NewGetAllSemestersHandler(authMW, academicsDB))
 	router.Handle("GET /academic/semesters/active", academic.NewGetActiveSemesterHandler(authMW, academicsDB))
 	router.Handle("GET /academic/semesters/{id}", academic.NewGetSemesterByIDHandler(authMW, academicsDB))
+	router.Handle("PUT /academic/semesters/{id}", academic.NewEditSemesterHandler(authMW, academicsDB))
 
 	return router
 }

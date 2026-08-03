@@ -15,6 +15,7 @@ type SemesterActions interface {
 	GetAllSemesters(ctx context.Context, userID string) ([]Semester, error)
 	GetActiveSemester(ctx context.Context, userID string) (*Semester, error)
 	GetSemesterByID(ctx context.Context, userID, semesterID string) (*Semester, error)
+	EditSemester(ctx context.Context, userID, semesterID string, data EditSemesterRequest) (*Semester, error)
 }
 
 type SemesterHandler struct {
@@ -189,6 +190,71 @@ func (h *GetSemesterByIDHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 func NewGetSemesterByIDHandler(authMiddleware mw.Middleware, actions SemesterActions) http.Handler {
 	handler := &GetSemesterByIDHandler{
+		SemesterHandler: SemesterHandler{
+			actions: actions,
+		},
+	}
+	return mw.CoreChain(handler, authMiddleware)
+}
+
+// --- Edit a semester
+type EditSemesterRequest struct {
+	Name       string    `json:"name"`
+	StartDate  JBsonTime `json:"startDate"`
+	EndDate    JBsonTime `json:"endDate"`
+}
+type EditSemesterHandler struct {
+	SemesterHandler
+}
+func (h *EditSemesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// --- Get userID
+	claims, err := token.GetClaimsFromContext(r.Context())
+	if err != nil {
+		slog.Error("missing token claims in context")
+		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userID := claims.UserID
+
+	var requestData EditSemesterRequest
+	err = json.NewDecoder(r.Body).Decode(&requestData)
+	if err != nil {
+		mw.SetErrorAsJSON(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if requestData.EndDate.Before(requestData.StartDate.Time) {
+        mw.SetErrorAsJSON(w, "start date cannot be after end date", http.StatusBadRequest)
+        return
+    }
+    if requestData.Name == "" {
+        mw.SetErrorAsJSON(w, "name cannot be empty", http.StatusBadRequest)
+        return
+    }
+
+	id := r.PathValue("id")
+
+	semester, err := h.actions.EditSemester(r.Context(), userID, id, requestData)
+	if err != nil {
+		if errors.Is(err, ErrSemesterOverlapping) {
+			mw.SetErrorAsJSON(w, "Semesters cannot overlap", http.StatusConflict)
+			return
+		}
+
+		if errors.Is(err, ErrNoSuchSemester) {
+			mw.SetErrorAsJSON(w, "semester not found", http.StatusNotFound)
+			return
+		}
+
+		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(semester)
+}
+func NewEditSemesterHandler(authMiddleware mw.Middleware, actions SemesterActions) http.Handler {
+	handler := &EditSemesterHandler{
 		SemesterHandler: SemesterHandler{
 			actions: actions,
 		},
