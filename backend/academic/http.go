@@ -246,6 +246,7 @@ func (h *EditSemesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
+		slog.Error("Edit semester failed", "error", err, "semesterId", id)
 		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
