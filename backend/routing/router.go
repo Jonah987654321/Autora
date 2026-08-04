@@ -31,14 +31,20 @@ func CreateRouter(db *mongo.Database, jwtService *token.JWTService) *http.ServeM
 	authMW := token.AuthMiddleware(jwtService)
 
 	// --- Semester-related routes
-	academicsDB := &academic.MongoAcademicActions{
+	semestersDB := &academic.MongoSemesterActions{
 		Database: db,
 	}
-	router.Handle("POST /academic/semesters", academic.NewCreateSemesterHandler(authMW, academicsDB))
-	router.Handle("GET /academic/semesters", academic.NewGetAllSemestersHandler(authMW, academicsDB))
-	router.Handle("GET /academic/semesters/active", academic.NewGetActiveSemesterHandler(authMW, academicsDB))
-	router.Handle("GET /academic/semesters/{id}", academic.NewGetSemesterByIDHandler(authMW, academicsDB))
-	router.Handle("PUT /academic/semesters/{id}", academic.NewEditSemesterHandler(authMW, academicsDB))
+	router.Handle("POST /academic/semesters", academic.NewCreateSemesterHandler(authMW, semestersDB))
+	router.Handle("GET /academic/semesters", academic.NewGetAllSemestersHandler(authMW, semestersDB))
+	router.Handle("GET /academic/semesters/active", academic.NewGetActiveSemesterHandler(authMW, semestersDB))
+	router.Handle("GET /academic/semesters/{id}", academic.NewGetSemesterByIDHandler(authMW, semestersDB))
+	router.Handle("PUT /academic/semesters/{id}", academic.NewEditSemesterHandler(authMW, semestersDB))
+
+	// --- Module-related routes
+	moduleDB := &academic.MongoModuleActions{
+		Database: db,
+	}
+	router.Handle("GET /academic/semesters/{id}/modules", academic.NewModuleBySemesterHandler(authMW, moduleDB))
 
 	return router
 }

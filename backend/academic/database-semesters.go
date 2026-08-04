@@ -14,14 +14,14 @@ import (
 const COLLECTION_SEMESTERS = "semesters"
 
 type Semester struct {
-	ID        bson.ObjectID `bson:"_id" json:"id"`
+	ID        bson.ObjectID `bson:"_id,omitempty" json:"id"`
 	UserID    bson.ObjectID `bson:"userID" json:"-"`
 	Name      string        `bson:"name" json:"name"`
 	StartDate JBsonTime     `bson:"startDate" json:"startDate"`
 	EndDate   JBsonTime     `bson:"endDate" json:"endDate"`
 }
 
-type MongoAcademicActions struct {
+type MongoSemesterActions struct {
 	Database *mongo.Database
 }
 
@@ -30,7 +30,7 @@ var (
 	ErrNoSuchSemester      = errors.New("no matching semester")
 )
 
-func (a *MongoAcademicActions) doesSemesterOverlap(ctx context.Context, userID bson.ObjectID, start, end time.Time, exclude *bson.ObjectID) (bool, error) {
+func (a *MongoSemesterActions) doesSemesterOverlap(ctx context.Context, userID bson.ObjectID, start, end time.Time, exclude *bson.ObjectID) (bool, error) {
 	findOverlapping := bson.M{"$and": bson.A{
 		bson.M{"userID": userID},
 		bson.M{"startDate": bson.M{"$lte": end}},
@@ -55,7 +55,7 @@ func (a *MongoAcademicActions) doesSemesterOverlap(ctx context.Context, userID b
 	return true, nil
 }
 
-func (a *MongoAcademicActions) CreateSemester(ctx context.Context, userID string, data CreateSemesterRequest) (string, error) {
+func (a *MongoSemesterActions) CreateSemester(ctx context.Context, userID string, data CreateSemesterRequest) (string, error) {
 	userObjectId, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
 		return "", fmt.Errorf("failed to convert userID to ObjectID: %w", err)
@@ -88,7 +88,7 @@ func (a *MongoAcademicActions) CreateSemester(ctx context.Context, userID string
 	return semesterID.Hex(), nil
 }
 
-func (a *MongoAcademicActions) GetAllSemesters(ctx context.Context, userID string) ([]Semester, error) {
+func (a *MongoSemesterActions) GetAllSemesters(ctx context.Context, userID string) ([]Semester, error) {
 	userObjectId, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert userID to ObjectID: %w", err)
@@ -104,7 +104,7 @@ func (a *MongoAcademicActions) GetAllSemesters(ctx context.Context, userID strin
 		return nil, fmt.Errorf("failed to fetch from database: %w", err)
 	}
 
-	defer res.Close(dbCtx)
+	defer res.Close(ctx)
 
 	data := []Semester{}
 	err = res.All(dbCtx, &data)
@@ -115,7 +115,7 @@ func (a *MongoAcademicActions) GetAllSemesters(ctx context.Context, userID strin
 	return data, nil
 }
 
-func (a *MongoAcademicActions) GetActiveSemester(ctx context.Context, userID string) (*Semester, error) {
+func (a *MongoSemesterActions) GetActiveSemester(ctx context.Context, userID string) (*Semester, error) {
 	userObjectId, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert userID to ObjectID: %w", err)
@@ -147,7 +147,7 @@ func (a *MongoAcademicActions) GetActiveSemester(ctx context.Context, userID str
 	return &current, nil
 }
 
-func (a *MongoAcademicActions) GetSemesterByID(ctx context.Context, userID, semesterID string) (*Semester, error) {
+func (a *MongoSemesterActions) GetSemesterByID(ctx context.Context, userID, semesterID string) (*Semester, error) {
 	userObjectId, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert userID to ObjectID: %w", err)
@@ -177,7 +177,7 @@ func (a *MongoAcademicActions) GetSemesterByID(ctx context.Context, userID, seme
 	return &semester, nil
 }
 
-func (a *MongoAcademicActions) EditSemester(ctx context.Context, userID, semesterID string, data EditSemesterRequest) (*Semester, error) {
+func (a *MongoSemesterActions) EditSemester(ctx context.Context, userID, semesterID string, data EditSemesterRequest) (*Semester, error) {
 	userObjectId, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert userID to ObjectID: %w", err)
