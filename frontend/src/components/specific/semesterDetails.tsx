@@ -17,6 +17,7 @@ import {
 } from "../ui/alert-dialog";
 import SemesterDialog from "./semesterDialog";
 import { editSemester } from "@/api/academic";
+import { ScrollArea } from "../ui/scroll-area";
 
 interface SemesterDetailsProps {
   semester: SemesterData;
@@ -94,8 +95,8 @@ export default function SemesterDetails({
           </AlertDialog>
         </div>
       </div>
-      <div className="flex-1 pt-5">
-        <div className="flex">
+      <div className="flex-1 pt-5 flex flex-col min-h-0">
+        <div className="flex shrink-0 pb-4">
           <div className="flex-1 flex items-center text-lg">
             {t("semesters.detailView.modules")}
           </div>
@@ -106,9 +107,11 @@ export default function SemesterDetails({
             </Button>
           </div>
         </div>
-        <div>
-          <Module />
-          <Module />
+        <div className="flex-1 min-h-0">
+          <ScrollArea className="h-full pr-4" type="always">
+            <Module />
+            <Module />
+          </ScrollArea>
         </div>
       </div>
     </div>

@@ -146,30 +146,34 @@ export default function PageSemester() {
       <div
         className={
           !semestersLoading && !loadingError && semesters.length > 0
-            ? "grid grid-cols-2 flex-1 pt-5 divide-x divide-gray-200"
+            ? "grid grid-cols-2 flex-1 pt-5 divide-x divide-gray-200 min-h-0"
             : "hidden"
         }
       >
-        <div>
-          <h2>{t("semesters.semesterAmount", { count: semesters.length })}</h2>
-          <ScrollArea className="mt-3 pr-4">
-            <div className="divide-y divide-border">
-              {semesters.map((s) => {
-                return (
-                  <Semester
-                    onClick={(_) => setSelectedSemester(s)}
-                    key={s.id}
-                    locale={currentLocale}
-                    semesterName={s.name}
-                    start={new Date(s.startDate)}
-                    end={new Date(s.endDate)}
-                  />
-                );
-              })}
-            </div>
-          </ScrollArea>
+        <div className="flex flex-col min-h-0">
+          <h2 className="shrink-0">
+            {t("semesters.semesterAmount", { count: semesters.length })}
+          </h2>
+          <div className="flex-1 min-h-0 mt-3">
+            <ScrollArea className="h-full mt-3 pr-4">
+              <div className="divide-y divide-border">
+                {semesters.map((s) => {
+                  return (
+                    <Semester
+                      onClick={(_) => setSelectedSemester(s)}
+                      key={s.id}
+                      locale={currentLocale}
+                      semesterName={s.name}
+                      start={new Date(s.startDate)}
+                      end={new Date(s.endDate)}
+                    />
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          </div>
         </div>
-        <div>
+        <div className="h-full min-h-0 overflow-hidden">
           <div
             id="semester-details-noSelect"
             className={
