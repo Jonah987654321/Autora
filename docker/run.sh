@@ -16,4 +16,4 @@ else
     export FRONTEND_PORT=5173
 fi
 
-exec docker compose --profile "$profile" up --build "${detach_flags[@]}"
+exec docker compose --profile "$profile" up --build --renew-anon-volumes "${detach_flags[@]}"

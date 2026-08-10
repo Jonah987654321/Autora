@@ -1,6 +1,6 @@
 import type SemesterData from "@/models/semester";
 import { Button } from "../ui/button";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { format, type Locale } from "date-fns";
 import Module from "./module";
@@ -16,8 +16,16 @@ import {
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
 import SemesterDialog from "./semesterDialog";
-import { editSemester } from "@/api/academic";
+import {
+  createModule,
+  editSemester,
+  getModulesBySemesterID,
+} from "@/api/academic";
 import { ScrollArea } from "../ui/scroll-area";
+import { useEffect, useState } from "react";
+import type ModuleData from "@/models/module";
+import { Spinner } from "../ui/spinner";
+import ModuleDialog from "./moduleDialog";
 
 interface SemesterDetailsProps {
   semester: SemesterData;
@@ -36,6 +44,25 @@ export default function SemesterDetails({
     let data = await editSemester(semester.id, name, startDate, endDate);
     onUpdate(data);
   };
+
+  const [modules, setModules] = useState<ModuleData[]>([]);
+  const [modulesLoading, setModulesLoading] = useState(false);
+
+  const loadModules = async () => {
+    try {
+      setModulesLoading(true);
+      const data = await getModulesBySemesterID(semester.id);
+      setModules(data);
+    } catch (error) {
+      console.error("Failed to fetch modules: ", error);
+    } finally {
+      setModulesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadModules();
+  }, [semester]);
 
   return (
     <div className="p-8 divide-y divide-border flex flex-col h-full">
@@ -101,16 +128,65 @@ export default function SemesterDetails({
             {t("semesters.detailView.modules")}
           </div>
           <div>
-            <Button variant="outline">
-              <Plus />
-              {t("semesters.detailView.newModule")}
-            </Button>
+            <ModuleDialog
+              mode="create"
+              onSave={async (
+                name: string,
+                abbr: string,
+                color: string,
+                ects?: number,
+                grade?: string,
+              ) => {
+                await createModule(semester.id, name, abbr, color, ects, grade);
+                loadModules();
+              }}
+            >
+              <Button variant="outline">
+                <Plus />
+                {t("semesters.detailView.newModule")}
+              </Button>
+            </ModuleDialog>
           </div>
         </div>
-        <div className="flex-1 min-h-0">
+        <div
+          className={
+            modulesLoading
+              ? "flex-1 pt-5 flex items-center justify-center"
+              : "hidden"
+          }
+        >
+          <div className="flex flex-col items-center gap-4">
+            <Spinner className="h-8 w-8 text-muted-foreground" />
+
+            <p className="text-sm font-medium text-muted-foreground animate-pulse">
+              {t("semesters.detailView.modulesLoading")}
+            </p>
+          </div>
+        </div>
+        <div
+          className={
+            !modulesLoading && modules.length == 0
+              ? "flex-1 pt-5 flex items-center justify-center"
+              : "hidden"
+          }
+        >
+          <div className="flex flex-col items-center gap-4">
+            <FolderOpen className="h-8 w-8 text-muted-foreground" />
+
+            <p className="text-sm font-medium text-muted-foreground">
+              {t("semesters.detailView.noModules")}
+            </p>
+          </div>
+        </div>
+        <div
+          className={
+            !modulesLoading && modules.length > 0 ? "flex-1 min-h-0" : "hidden"
+          }
+        >
           <ScrollArea className="h-full pr-4" type="always">
-            <Module />
-            <Module />
+            {modules.map((m) => {
+              return <Module data={m} key={m.id} />;
+            })}
           </ScrollArea>
         </div>
       </div>

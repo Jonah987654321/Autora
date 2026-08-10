@@ -8,6 +8,7 @@ import PageLogin from "./pages/PageLogin";
 import PageRegister from "./pages/PageRegister";
 import { PublicOnlyLayout } from "./components/layout/PublicOnlyLayout";
 import PageSemester from "./pages/PageSemesters";
+import { Toaster } from "./components/ui/sonner";
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
           </Routes>
         </AuthProvider>
       </BrowserRouter>
+      <Toaster />
     </>
   );
 }

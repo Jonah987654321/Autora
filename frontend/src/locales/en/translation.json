@@ -1,4 +1,7 @@
 {
+  "common": {
+    "internalServerError": "Server error, please retry later!"
+  },
   "preauth": {
     "titleLogin": "Login",
     "titleRegister": "Create new account",
@@ -73,13 +76,36 @@
     "detailView": {
       "modules": "Courses",
       "newModule": "Add course",
+      "modulesLoading": "Loading modules...",
+      "noModules": "You haven't created modules for this semester yet.",
       "deleteDialog": {
         "title": "Delete semester?",
         "description": "You can not restore a deleted semester. This also deletes all modules in this semester and their content.",
         "target": "You are deleting the following semester: ",
         "confirm": "Delete permanently",
         "cancel": "Cancel"
+      },
+      "newCourse": {
+        "titleEdit": "Edit course",
+        "titleNew": "Create new course",
+        "submitNew": "Create",
+        "submitEdit": "Save changes",
+        "courseName": "Course name",
+        "courseNamePlaceholder": "Maths 101",
+        "courseAbbreviation": "Abbreviation",
+        "courseAbbreviationPlaceholder": "M101",
+        "courseColor": "Color",
+        "ects": "ECTS",
+        "ectsPlaceholder": "6",
+        "grade": "Grade",
+        "gradePlaceholder": "1.3"
       }
     }
+  },
+  "course": {
+    "status": "Status",
+    "statusCompleted": "Completed",
+    "statusInProgress": "In progress",
+    "ects": "ECTS"
   }
 }

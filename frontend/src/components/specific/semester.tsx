@@ -9,6 +9,7 @@ interface SemesterProps {
   end: Date;
   locale?: Locale;
   onClick?: MouseEventHandler;
+  isActive: boolean;
 }
 
 export default function Semester({
@@ -16,12 +17,13 @@ export default function Semester({
   start,
   end,
   locale,
-  onClick
+  onClick,
+  isActive
 }: SemesterProps) {
   const { t } = useTranslation();
   const now = new Date();
   return (
-    <div className="bg-transparent hover:bg-accent cursor-pointer p-5" onClick={onClick}>
+    <div className={`hover:bg-accent/50 cursor-pointer p-5 ${isActive ? "border-r-2 border-r-primary bg-accent":"bg-transparent "}`} onClick={onClick}>
       <div className="flex">
         <div className="flex-1 text-base font-medium text-foreground">
           {semesterName}

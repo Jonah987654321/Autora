@@ -1,4 +1,7 @@
 {
+  "common": {
+    "internalServerError": "Serverfehler, bitte versuche es später erneut!"
+  },
   "preauth": {
     "titleLogin": "Anmelden",
     "titleRegister": "Neues Konto anlegen",
@@ -43,5 +46,66 @@
     "calendarNewEntry": "Neuer Eintrag",
     "toDoList": "To-Do Liste",
     "toDoListNewEntry": "Neues To-Do"
+  },
+  "semesters": {
+    "heading": "Verwalte deine Semester",
+    "search": "Suche Semester nach Namen...",
+    "new": "Neues Semester",
+    "loading": "Lade Semester...",
+    "error": "Ein Fehler ist beim Laden der Semester aufgetreten. Bitte versuche es später erneut",
+    "noSemesters": "Du hast noch keine Semester erstellt. Was hälst du davon ein neues anzulegen?",
+    "selectFromLeft": "Bitte wähle links ein Semester aus",
+    "semesterAmount_one": "{{count}} Semester gefunden",
+    "semesterAmount_other": "{{count}} Semester gefunden",
+    "duration": "Vom {{start}} bis zum {{end}}",
+    "newDialog": {
+      "titleNew": "Neues Semester erstellen",
+      "titleEdit": "Bearbeite Semester",
+      "description": "Zeitspanne darf sich nicht mit bestehenden Semestern überschneiden",
+      "submitNew": "Erstellen",
+      "submitEdit": "Änderungen speichern",
+      "semesterName": "Name",
+      "semesterNamePlaceholder": "Z.B. Wintersemester 2025/26",
+      "startDate": "Startdatum",
+      "endDate": "Enddatum",
+      "pickDate": "Wähle ein Datum",
+      "datePeriodInvalid": "Startdatum kann nicht nach Enddatum liegen.",
+      "serverError": "Serverfehler oder nicht erreichbar. Bitte versuche es später erneut.",
+      "overlappingWithExisting": "Die Zeitspanne überschneidet sich mit einem bereits bestehenden Semester."
+    },
+    "detailView": {
+      "modules": "Module",
+      "newModule": "Neues Modul",
+      "modulesLoading": "Lade Module...",
+      "noModules": "Du hast noch keine Module für dieses Semester angelegt",
+      "deleteDialog": {
+        "title": "Semester löschen?",
+        "description": "Du kannst ein gelöschtes Semester nicht wiederherstellen. Das löscht auch alle Module in diesem Semester und ihren Inhalt",
+        "target": "Du löschst das folgende Semester: ",
+        "confirm": "Permanent löschen",
+        "cancel": "Abbrechen"
+      },
+      "newCourse": {
+        "titleEdit": "Modul bearbeiten",
+        "titleNew": "Neues Modul erstellen",
+        "submitNew": "Erstellen",
+        "submitEdit": "Änderungen speichern",
+        "courseName": "Modulname",
+        "courseNamePlaceholder": "Mathe II",
+        "courseAbbreviation": "Abkürzung",
+        "courseAbbreviationPlaceholder": "MII",
+        "courseColor": "Farbe",
+        "ects": "ECTS",
+        "ectsPlaceholder": "6",
+        "grade": "Note",
+        "gradePlaceholder": "1.3"
+      }
+    }
+  },
+  "course": {
+    "status": "Status",
+    "statusCompleted": "Abgeschlossen",
+    "statusInProgress": "In Arbeit",
+    "ects": "ECTS"
   }
 }

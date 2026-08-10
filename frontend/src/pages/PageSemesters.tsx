@@ -160,6 +160,7 @@ export default function PageSemester() {
                 {semesters.map((s) => {
                   return (
                     <Semester
+                      isActive={selectedSemester !== null && selectedSemester.id == s.id}
                       onClick={(_) => setSelectedSemester(s)}
                       key={s.id}
                       locale={currentLocale}
