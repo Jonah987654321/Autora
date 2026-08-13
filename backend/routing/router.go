@@ -44,8 +44,10 @@ func CreateRouter(db *mongo.Database, jwtService *token.JWTService) *http.ServeM
 	moduleDB := &academic.MongoModuleActions{
 		Database: db,
 	}
-	router.Handle("GET /academic/semesters/{id}/modules", academic.NewModuleBySemesterHandler(authMW, moduleDB))
 	router.Handle("POST /academic/semesters/{id}/modules", academic.NewCreateModuleHandler(authMW, moduleDB))
+	router.Handle("GET /academic/semesters/{id}/modules", academic.NewModuleBySemesterHandler(authMW, moduleDB))
+	router.Handle("GET /academic/modules/{id}", academic.NewGetModuleByIDHandler(authMW, moduleDB))
+	router.Handle("PUT /academic/modules/{id}", academic.NewEditModuleHandler(authMW, moduleDB))
 
 	return router
 }

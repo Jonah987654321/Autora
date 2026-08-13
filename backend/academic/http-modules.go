@@ -16,6 +16,8 @@ import (
 type ModulesActions interface {
 	GetModulesForSemester(ctx context.Context, userID, semesterID string) ([]Module, error)
 	CreateModule(ctx context.Context, userID, semesterID string, req CreateModuleRequest) (*Module, error)
+	GetModuleByID(ctx context.Context, userID, moduleID string) (*Module, error)
+	EditModule(ctx context.Context, userID, moduleID string, req EditModuleRequest) (*Module, error)
 }
 
 // --- Handler for retrieving all modules for a semester
@@ -111,6 +113,115 @@ func (h *CreateModuleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 func NewCreateModuleHandler(authMiddleware mw.Middleware, actions ModulesActions) http.Handler {
 	handler := &CreateModuleHandler{
+		actions: actions,
+	}
+	return mw.CoreChain(handler, authMiddleware)
+}
+
+// --- Get single module
+type GetModuleByIDHandler struct {
+	actions ModulesActions
+}
+
+func (h *GetModuleByIDHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// --- Get userID
+	claims, err := token.GetClaimsFromContext(r.Context())
+	if err != nil {
+		slog.Error("missing token claims in context")
+		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userID := claims.UserID
+
+	id := r.PathValue("id")
+
+	module, err := h.actions.GetModuleByID(r.Context(), userID, id)
+	if err != nil {
+		if errors.Is(err, ErrNoSuchModule) {
+			mw.SetErrorAsJSON(w, "module not found", http.StatusNotFound)
+			return
+		}
+
+		slog.Error("Get module by id failed", "error", err, "moduleID", id)
+		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(module)
+}
+func NewGetModuleByIDHandler(authMiddleware mw.Middleware, actions ModulesActions) http.Handler {
+	handler := &GetModuleByIDHandler{
+		actions: actions,
+	}
+	return mw.CoreChain(handler, authMiddleware)
+}
+
+// --- Edit Modules
+type EditModuleHandler struct {
+	actions ModulesActions
+}
+
+type EditModuleRequest struct {
+	SemesterID   string           `json:"semester"`
+	Name         string           `json:"name"`
+	Abbreviation string           `json:"abbreviation"`
+	Color        string           `json:"color"`
+	ECTS         *int             `json:"ects,omitempty"`
+	Grade        *bson.Decimal128 `json:"grade,omitempty"`
+}
+
+func (h *EditModuleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	claims, err := token.GetClaimsFromContext(r.Context())
+	if err != nil {
+		slog.Error("missing token claims in context")
+		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userID := claims.UserID
+
+	moduleID := r.PathValue("id")
+
+	var req EditModuleRequest
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		mw.SetErrorAsJSON(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	if req.Name == "" {
+		mw.SetErrorAsJSON(w, "name cannot be empty", http.StatusBadRequest)
+		return
+	}
+	if req.Abbreviation == "" {
+		mw.SetErrorAsJSON(w, "abbreviation cannot be empty", http.StatusBadRequest)
+		return
+	}
+	if req.Color == "" || (!slices.Contains([]string{"red", "orange", "amber", "green", "emerald", "blue", "indigo", "purple", "pink", "gray"}, req.Color)) {
+		req.Color = "gray"
+	}
+
+	module, err := h.actions.EditModule(r.Context(), userID, moduleID, req)
+	if err != nil {
+		if errors.Is(err, ErrNoSuchModule) {
+			mw.SetErrorAsJSON(w, "target module does not exist", http.StatusNotFound)
+			return
+		}
+
+		if errors.Is(err, ErrNoSuchSemester) {
+			mw.SetErrorAsJSON(w, "target semester does not exist", http.StatusBadRequest)
+			return
+		}
+
+		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(module)
+}
+func NewEditModuleHandler(authMiddleware mw.Middleware, actions ModulesActions) http.Handler {
+	handler := &EditModuleHandler{
 		actions: actions,
 	}
 	return mw.CoreChain(handler, authMiddleware)
