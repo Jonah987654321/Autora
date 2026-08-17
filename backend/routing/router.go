@@ -48,6 +48,7 @@ func CreateRouter(db *mongo.Database, jwtService *token.JWTService) *http.ServeM
 	router.Handle("GET /academic/semesters/{id}/modules", academic.NewModuleBySemesterHandler(authMW, moduleDB))
 	router.Handle("GET /academic/modules/{id}", academic.NewGetModuleByIDHandler(authMW, moduleDB))
 	router.Handle("PUT /academic/modules/{id}", academic.NewEditModuleHandler(authMW, moduleDB))
+	router.Handle("PUT /academic/modules/{id}/weekly-schedule", academic.NewSetWeeklyScheduleHandler(authMW, moduleDB))
 
 	return router
 }

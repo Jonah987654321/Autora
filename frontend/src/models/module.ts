@@ -1,3 +1,10 @@
+export interface WeeklyScheduleEntry {
+  weekday: number;
+  start: number;
+  end: number;
+  type: number;
+}
+
 export default interface ModuleData {
   id: string;
   semesterID: string;
@@ -6,4 +13,5 @@ export default interface ModuleData {
   color: string;
   ects?: number;
   grade?: string;
+  weeklySchedule: WeeklyScheduleEntry[];
 }

@@ -16,7 +16,6 @@ import { Input } from "../ui/input";
 import ColorSelector from "../ui/color-choice";
 import type ModuleData from "@/models/module";
 import { toast } from "sonner";
-import { init } from "i18next";
 
 interface ModuleDialogProps {
   mode: "edit" | "create";
@@ -113,19 +112,19 @@ export default function ModuleDialog({ children, mode, onSave, initialData }: Mo
 
   return (
     <Dialog open={dialogOpen} onOpenChange={toggleOpen}>
-      <DialogTrigger>{children}</DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
             {mode == "edit"
-              ? t("semesters.detailView.newCourse.titleEdit")
-              : t("semesters.detailView.newCourse.titleNew")}
+              ? t("course.dialog.titleEdit")
+              : t("course.dialog.titleNew")}
           </DialogTitle>
         </DialogHeader>
         <FieldGroup>
           <Field>
             <FieldLabel htmlFor="input-courseName">
-              {t("semesters.detailView.newCourse.courseName")}
+              {t("course.dialog.courseName")}
               <span className="text-destructive">*</span>
             </FieldLabel>
             <Input
@@ -133,7 +132,7 @@ export default function ModuleDialog({ children, mode, onSave, initialData }: Mo
               id="input-courseName"
               aria-invalid={nameInvalid}
               placeholder={t(
-                "semesters.detailView.newCourse.courseNamePlaceholder",
+                "course.dialog.courseNamePlaceholder",
               )}
               onChange={(e) => {
                 setNameInvalid(false);
@@ -143,7 +142,7 @@ export default function ModuleDialog({ children, mode, onSave, initialData }: Mo
           </Field>
           <Field>
             <FieldLabel htmlFor="input-courseAbbreviation">
-              {t("semesters.detailView.newCourse.courseAbbreviation")}
+              {t("course.dialog.courseAbbreviation")}
               <span className="text-destructive">*</span>
             </FieldLabel>
             <Input
@@ -151,7 +150,7 @@ export default function ModuleDialog({ children, mode, onSave, initialData }: Mo
               id="input-courseAbbreviation"
               aria-invalid={abbreviationInvalid}
               placeholder={t(
-                "semesters.detailView.newCourse.courseAbbreviationPlaceholder",
+                "course.dialog.courseAbbreviationPlaceholder",
               )}
               onChange={(e) => {
                 setAbbreviationInvalid(false);
@@ -162,7 +161,7 @@ export default function ModuleDialog({ children, mode, onSave, initialData }: Mo
         </FieldGroup>
         <Field>
           <FieldLabel>
-            {t("semesters.detailView.newCourse.courseColor")}
+            {t("course.dialog.courseColor")}
           </FieldLabel>
           <div className="flex justify-around">
             <ColorSelector
@@ -220,13 +219,13 @@ export default function ModuleDialog({ children, mode, onSave, initialData }: Mo
         <FieldGroup className="grid max-w-sm grid-cols-2">
           <Field>
             <FieldLabel htmlFor="input-ects">
-              {t("semesters.detailView.newCourse.ects")}
+              {t("course.dialog.ects")}
             </FieldLabel>
             <Input
               value={ects === undefined ? "" : ects.toString()}
               id="input-ects"
               aria-invalid={ectsInvalid}
-              placeholder={t("semesters.detailView.newCourse.ectsPlaceholder")}
+              placeholder={t("course.dialog.ectsPlaceholder")}
               type="number"
               min="0"
               onChange={(e) => {
@@ -241,13 +240,13 @@ export default function ModuleDialog({ children, mode, onSave, initialData }: Mo
           </Field>
           <Field>
             <FieldLabel htmlFor="input-grade">
-              {t("semesters.detailView.newCourse.grade")}
+              {t("course.dialog.grade")}
             </FieldLabel>
             <Input
               value={grade === undefined ? "" : grade.toString()}
               id="input-grade"
               aria-invalid={gradeInvalid}
-              placeholder={t("semesters.detailView.newCourse.gradePlaceholder")}
+              placeholder={t("course.dialog.gradePlaceholder")}
               type="number"
               step="0.1"
               min="0"
@@ -263,16 +262,16 @@ export default function ModuleDialog({ children, mode, onSave, initialData }: Mo
           </Field>
         </FieldGroup>
         <DialogFooter>
-          <Button onClick={(_) => submit()}>
+          <Button onClick={(_) => submit()} disabled={loading}>
             {loading ? (
               <Spinner />
             ) : mode == "create" ? (
               <>
-                <Check /> {t("semesters.detailView.newCourse.submitNew")}
+                <Check /> {t("course.dialog.submitNew")}
               </>
             ) : (
               <>
-                <Check /> {t("semesters.detailView.newCourse.submitEdit")}
+                <Check /> {t("course.dialog.submitEdit")}
               </>
             )}
           </Button>

@@ -9,6 +9,8 @@ import PageRegister from "./pages/PageRegister";
 import { PublicOnlyLayout } from "./components/layout/PublicOnlyLayout";
 import PageSemester from "./pages/PageSemesters";
 import { Toaster } from "./components/ui/sonner";
+import PageCourse from "./pages/PageCourse";
+import { TooltipProvider } from "./components/ui/tooltip";
 
 export default function App() {
   return (
@@ -26,16 +28,19 @@ export default function App() {
             <Route element={<ProtectedLayout />}>
               <Route
                 element={
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <div className="flex-1">
-                      <Outlet />
-                    </div>
-                  </SidebarProvider>
+                  <TooltipProvider delayDuration={700}>
+                    <SidebarProvider>
+                      <AppSidebar />
+                      <div className="flex-1">
+                        <Outlet />
+                      </div>
+                    </SidebarProvider>
+                  </TooltipProvider>
                 }
               >
                 <Route path="/" element={<PageDashboard />} />
                 <Route path="/semesters" element={<PageSemester />} />
+                <Route path="/course/:courseId" element={<PageCourse />} />
               </Route>
             </Route>
           </Routes>

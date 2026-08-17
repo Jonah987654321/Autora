@@ -18,6 +18,7 @@ type ModulesActions interface {
 	CreateModule(ctx context.Context, userID, semesterID string, req CreateModuleRequest) (*Module, error)
 	GetModuleByID(ctx context.Context, userID, moduleID string) (*Module, error)
 	EditModule(ctx context.Context, userID, moduleID string, req EditModuleRequest) (*Module, error)
+	SetWeeklySchedule(ctx context.Context, userID, moduleID string, req []WeeklyScheduleEntry) error
 }
 
 // --- Handler for retrieving all modules for a semester
@@ -188,7 +189,7 @@ func (h *EditModuleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		mw.SetErrorAsJSON(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	if req.Name == "" {
 		mw.SetErrorAsJSON(w, "name cannot be empty", http.StatusBadRequest)
 		return
@@ -222,6 +223,61 @@ func (h *EditModuleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 func NewEditModuleHandler(authMiddleware mw.Middleware, actions ModulesActions) http.Handler {
 	handler := &EditModuleHandler{
+		actions: actions,
+	}
+	return mw.CoreChain(handler, authMiddleware)
+}
+
+// --- Manage setting weekly schedules
+type SetWeeklyScheduleHandler struct {
+	actions ModulesActions
+}
+
+func (h *SetWeeklyScheduleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	claims, err := token.GetClaimsFromContext(r.Context())
+	if err != nil {
+		slog.Error("missing token claims in context")
+		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userID := claims.UserID
+
+	moduleID := r.PathValue("id")
+
+	var data []WeeklyScheduleEntry
+	err = json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		mw.SetErrorAsJSON(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// --- Validate entries
+	for _, el := range data {
+		if el.Weekday < 1 || el.Weekday > 7 ||
+			el.Start < 0 || el.Start >= 24*60 ||
+			el.End < 0 || el.End > 24*60 ||
+			el.Start >= el.End ||
+			el.Type < 0 || el.Type > 8 {
+				mw.SetErrorAsJSON(w, "invalid entry data", http.StatusBadRequest)
+				return
+		}
+	}
+
+	err = h.actions.SetWeeklySchedule(r.Context(), userID, moduleID, data)
+	if err != nil {
+		if errors.Is(err, ErrNoSuchModule) {
+			mw.SetErrorAsJSON(w, "target module does not exist", http.StatusNotFound)
+			return
+		}
+
+		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+func NewSetWeeklyScheduleHandler(authMiddleware mw.Middleware, actions ModulesActions) http.Handler {
+	handler := &SetWeeklyScheduleHandler{
 		actions: actions,
 	}
 	return mw.CoreChain(handler, authMiddleware)

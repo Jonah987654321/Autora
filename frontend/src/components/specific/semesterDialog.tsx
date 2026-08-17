@@ -251,7 +251,7 @@ export default function SemesterDialog({
           {t("semesters.newDialog.serverError")}
         </div>
         <DialogFooter>
-          <Button onClick={(_) => submit()}>
+          <Button onClick={(_) => submit()} disabled={loading}>
             {loading ? (
               <Spinner />
             ) : mode == "create" ? (

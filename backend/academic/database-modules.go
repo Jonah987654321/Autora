@@ -16,15 +16,23 @@ var (
 	ErrNoSuchModule = errors.New("modules: no matching module found")
 )
 
+type WeeklyScheduleEntry struct {
+	Weekday int `bson:"weekday" json:"weekday"`
+	Start   int `bson:"start" json:"start"`
+	End     int `bson:"end" json:"end"`
+	Type    int `bson:"type" json:"type"`
+}
+
 type Module struct {
-	ID           bson.ObjectID    `bson:"_id,omitempty" json:"id"`
-	UserID       bson.ObjectID    `bson:"userID" json:"-"`
-	SemesterID   bson.ObjectID    `bson:"semesterID" json:"semesterID"`
-	Name         string           `bson:"name" json:"name"`
-	Abbreviation string           `bson:"abbreviation" json:"abbreviation"`
-	Color        string           `bson:"color" json:"color"`
-	Ects         *int             `bson:"ects,omitempty" json:"ects,omitempty"`
-	Grade        *bson.Decimal128 `bson:"grade,omitempty" json:"grade,omitempty"`
+	ID             bson.ObjectID         `bson:"_id,omitempty" json:"id"`
+	UserID         bson.ObjectID         `bson:"userID" json:"-"`
+	SemesterID     bson.ObjectID         `bson:"semesterID" json:"semesterID"`
+	Name           string                `bson:"name" json:"name"`
+	Abbreviation   string                `bson:"abbreviation" json:"abbreviation"`
+	Color          string                `bson:"color" json:"color"`
+	Ects           *int                  `bson:"ects,omitempty" json:"ects,omitempty"`
+	Grade          *bson.Decimal128      `bson:"grade,omitempty" json:"grade,omitempty"`
+	WeeklySchedule []WeeklyScheduleEntry `bson:"weeklySchedule,omitempty" json:"weeklySchedule,omitempty"`
 }
 
 type MongoModuleActions struct {
@@ -208,4 +216,40 @@ func (a *MongoModuleActions) EditModule(ctx context.Context, userID, moduleID st
 		Ects:         req.ECTS,
 		Grade:        req.Grade,
 	}, nil
+}
+
+func (a *MongoModuleActions) SetWeeklySchedule(ctx context.Context, userID, moduleID string, req []WeeklyScheduleEntry) error {
+	userObjectId, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return fmt.Errorf("failed to convert userID to ObjectID: %w", err)
+	}
+	moduleObjectId, err := bson.ObjectIDFromHex(moduleID)
+	if err != nil {
+		return ErrNoSuchModule
+	}
+
+	filter := bson.M{
+        "_id":    moduleObjectId,
+        "userID": userObjectId,
+    }
+
+    updateOp := bson.M{
+        "$set": bson.M{
+            "weeklySchedule": req,
+        },
+    }
+
+	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+    defer cancel()
+
+    res, err := a.Database.Collection(COLLECTION_MODULES).UpdateOne(dbCtx, filter, updateOp)
+    if err != nil {
+        return fmt.Errorf("failed to update weekly schedule: %w", err)
+    }
+
+	if res.MatchedCount == 0 {
+        return ErrNoSuchModule
+    }
+
+	return nil
 }

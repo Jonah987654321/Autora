@@ -2,6 +2,17 @@
   "common": {
     "internalServerError": "Server error, please retry later!"
   },
+  "calendar": {
+    "weekdays": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday",
+      "7": "Sunday"
+    }
+  },
   "preauth": {
     "titleLogin": "Login",
     "titleRegister": "Create new account",
@@ -84,28 +95,79 @@
         "target": "You are deleting the following semester: ",
         "confirm": "Delete permanently",
         "cancel": "Cancel"
-      },
-      "newCourse": {
-        "titleEdit": "Edit course",
-        "titleNew": "Create new course",
-        "submitNew": "Create",
-        "submitEdit": "Save changes",
-        "courseName": "Course name",
-        "courseNamePlaceholder": "Maths 101",
-        "courseAbbreviation": "Abbreviation",
-        "courseAbbreviationPlaceholder": "M101",
-        "courseColor": "Color",
-        "ects": "ECTS",
-        "ectsPlaceholder": "6",
-        "grade": "Grade",
-        "gradePlaceholder": "1.3"
       }
     }
   },
   "course": {
+    "title": "Course",
+    "loading": "Loading course...",
+    "errors": {
+      "server": "An error occurred while fetching the course data.",
+      "serverAction": "Retry",
+      "notFound": "The course you are trying to view does not exist.",
+      "notFoundAction": "Browse semesters"
+    },
+    "semester": "Semester",
+    "tooltipsOptions": {
+      "transferSemester": "Transfer to other semester",
+      "editCourse": "Edit this course",
+      "deleteCourse": "Delete this course"
+    },
     "status": "Status",
     "statusCompleted": "Completed",
     "statusInProgress": "In progress",
-    "ects": "ECTS"
+    "ects": "ECTS",
+    "dialog": {
+      "titleEdit": "Edit course",
+      "titleNew": "Create new course",
+      "submitNew": "Create",
+      "submitEdit": "Save changes",
+      "courseName": "Course name",
+      "courseNamePlaceholder": "Maths 101",
+      "courseAbbreviation": "Abbreviation",
+      "courseAbbreviationPlaceholder": "M101",
+      "courseColor": "Color",
+      "ects": "ECTS",
+      "ectsPlaceholder": "6",
+      "grade": "Grade",
+      "gradePlaceholder": "1.3"
+    },
+    "cards": {
+      "flashcards": "Flashcards",
+      "flashcardsActions": "Learn now",
+      "lectureNotes": "Lecture notes",
+      "toDoList": "To-Do List",
+      "exercises": "Exercises",
+      "weeklySchedule": "Weekly schedule",
+      "events": "Events and Deadlines"
+    },
+    "weeklySchedule": {
+      "empty": "No weekly schedule set",
+      "dialogTitle": "Set your weekly schedule",
+      "dialogSave": "Save",
+      "dialogEmpty": "No entries yet",
+      "dialogAddEntry": "Add entry",
+      "dialogSort": "Sort entries",
+      "dialogLabelWeekday": "Weekday",
+      "dialogLabelEventType": "Event type",
+      "dialogLabelStart": "Start",
+      "dialogLabelEnd": "End"
+    },
+    "types": {
+      "0": "Other",
+      "1": "Lecture",
+      "2": "Exercise",
+      "3": "Central Exercise",
+      "4": "Tutorial",
+      "5": "Practical Course",
+      "6": "Seminar",
+      "7": "Self-Study",
+      "8": "Study Group"
+    }
+  },
+  "semesterTransfer": {
+    "title": "Transfer to another semester",
+    "placeholderDestinationSelect": "Select a destination semester",
+    "action": "Transfer"
   }
 }

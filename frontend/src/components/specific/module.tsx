@@ -1,7 +1,8 @@
 import { ChevronRight } from "lucide-react";
-import { Button } from "../ui/button";
 import type ModuleData from "@/models/module";
 import { useTranslation } from "react-i18next";
+import { NavLink } from "react-router";
+import SeperatorDot from "../ui/seperator-dot";
 
 interface ModuleProps {
   data: ModuleData;
@@ -23,31 +24,31 @@ const colorMap: Record<string, string> = {
 export default function Module({ data }: ModuleProps) {
   const { t } = useTranslation();
 
-  function SeperatorDot() {
-    return <span className="px-1.5">•</span>;
-  }
-
   return (
-    <div className={`border-muted border-2 p-2 rounded-md mt-2 hover:bg-accent cursor-pointer border-l-6 ${colorMap[data.color]} rounded-l-sm`}>
-      <div className="flex pl-2">
-        <div className="flex-1">
-          {data.name}
-          <div className="text-muted-foreground text-sm">
-            {t("course.status")}:{" "}
-            {data.grade !== undefined
-              ? `${t("course.statusCompleted")} (${data.grade})`
-              : t("course.statusInProgress")}
-            {data.ects && (
-              <>
-                <SeperatorDot /> {t("course.ects")}: {data.ects}
-              </>
-            )}
+    <NavLink to={`/course/${data.id}`}>
+      <div
+        className={`border-muted border-2 p-2 rounded-md mt-2 hover:bg-accent cursor-pointer border-l-6 ${colorMap[data.color]} rounded-l-sm`}
+      >
+        <div className="flex pl-2">
+          <div className="flex-1">
+            {data.name}
+            <div className="text-muted-foreground text-sm">
+              {t("course.status")}:{" "}
+              {data.grade !== undefined
+                ? `${t("course.statusCompleted")} (${data.grade})`
+                : t("course.statusInProgress")}
+              {data.ects && (
+                <>
+                  <SeperatorDot /> {t("course.ects")}: {data.ects}
+                </>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center pr-1">
+            <ChevronRight />
           </div>
         </div>
-        <div className="flex items-center pr-1">
-          <ChevronRight />
-        </div>
       </div>
-    </div>
+    </NavLink>
   );
 }
