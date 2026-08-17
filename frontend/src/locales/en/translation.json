@@ -150,7 +150,9 @@
       "dialogLabelWeekday": "Weekday",
       "dialogLabelEventType": "Event type",
       "dialogLabelStart": "Start",
-      "dialogLabelEnd": "End"
+      "dialogLabelEnd": "End",
+      "dialogLabelRoom": "Room",
+      "dialogPlaceholderRoom": "E.g., Room A1"
     },
     "types": {
       "0": "Other",

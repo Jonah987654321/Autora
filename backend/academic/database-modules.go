@@ -17,10 +17,11 @@ var (
 )
 
 type WeeklyScheduleEntry struct {
-	Weekday int `bson:"weekday" json:"weekday"`
-	Start   int `bson:"start" json:"start"`
-	End     int `bson:"end" json:"end"`
-	Type    int `bson:"type" json:"type"`
+	Weekday int    `bson:"weekday" json:"weekday"`
+	Start   int    `bson:"start" json:"start"`
+	End     int    `bson:"end" json:"end"`
+	Type    int    `bson:"type" json:"type"`
+	Room    string `bson:"room" json:"room"`
 }
 
 type Module struct {
@@ -229,27 +230,27 @@ func (a *MongoModuleActions) SetWeeklySchedule(ctx context.Context, userID, modu
 	}
 
 	filter := bson.M{
-        "_id":    moduleObjectId,
-        "userID": userObjectId,
-    }
+		"_id":    moduleObjectId,
+		"userID": userObjectId,
+	}
 
-    updateOp := bson.M{
-        "$set": bson.M{
-            "weeklySchedule": req,
-        },
-    }
+	updateOp := bson.M{
+		"$set": bson.M{
+			"weeklySchedule": req,
+		},
+	}
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-    defer cancel()
+	defer cancel()
 
-    res, err := a.Database.Collection(COLLECTION_MODULES).UpdateOne(dbCtx, filter, updateOp)
-    if err != nil {
-        return fmt.Errorf("failed to update weekly schedule: %w", err)
-    }
+	res, err := a.Database.Collection(COLLECTION_MODULES).UpdateOne(dbCtx, filter, updateOp)
+	if err != nil {
+		return fmt.Errorf("failed to update weekly schedule: %w", err)
+	}
 
 	if res.MatchedCount == 0 {
-        return ErrNoSuchModule
-    }
+		return ErrNoSuchModule
+	}
 
 	return nil
 }

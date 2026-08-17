@@ -10,6 +10,7 @@ import WeeklyScheduleDialog from "@/components/specific/modules/weeklyScheduleDi
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CardActionHeader } from "@/components/ui/cardActionHeader";
+import SeperatorDot from "@/components/ui/seperator-dot";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
@@ -369,15 +370,27 @@ export default function PageCourse() {
                                       key={index}
                                       className="flex justify-between items-baseline py-1.5 border-b border-border/40 last:border-0"
                                     >
-                                      <div className="flex items-baseline space-x-2 overflow-hidden">
-                                        <span className="text-sm font-medium">
-                                          {t(`calendar.weekdays.${e.weekday}`)}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground truncate">
-                                          {t(`course.types.${e.type}`)}
-                                        </span>
+                                      <div className="flex-1">
+                                        <div className="flex items-baseline space-x-2 overflow-hidden">
+                                          <span className="text-sm font-medium">
+                                            {t(
+                                              `calendar.weekdays.${e.weekday}`,
+                                            )}
+                                          </span>
+                                          <span className="text-xs text-muted-foreground truncate">
+                                            {t(`course.types.${e.type}`)}
+                                          </span>
+                                        </div>
                                       </div>
-                                      <div className="text-xs font-medium whitespace-nowrap pl-3">
+                                      {e.room !== "" && (
+                                        <>
+                                          <div className="text-muted-foreground">
+                                            {e.room}
+                                          </div>
+                                          <SeperatorDot />
+                                        </>
+                                      )}
+                                      <div className="text-xs font-medium whitespace-nowrap">
                                         {timeFormatter.format(startDate)} -{" "}
                                         {timeFormatter.format(endDate)}
                                       </div>

@@ -3,6 +3,7 @@ export interface WeeklyScheduleEntry {
   start: number;
   end: number;
   type: number;
+  room: string;
 }
 
 export default interface ModuleData {

@@ -89,6 +89,14 @@ export default function WeeklyScheduleDialog({
     );
   };
 
+  const updateRoom = (id: string, room: string) => {
+    setEntries((prevArray) =>
+      prevArray.map((element) =>
+        element._localId === id ? { ...element, room: room } : element,
+      ),
+    );
+  };
+
   const setInvalidState = (id: string, state: boolean) => {
     setEntries((prevArray) =>
       prevArray.map((element) =>
@@ -303,6 +311,23 @@ export default function WeeklyScheduleDialog({
                         </div>
                       </Field>
                     </FieldGroup>
+                    <FieldGroup>
+                      <Field>
+                        <Label htmlFor="input-room">
+                          {t("course.weeklySchedule.dialogLabelRoom")}
+                        </Label>
+                        <Input
+                          id="input-room"
+                          placeholder={t(
+                            "course.weeklySchedule.dialogPlaceholderRoom",
+                          )}
+                          value={e.room}
+                          onChange={(evt) =>
+                            updateRoom(e._localId, evt.target.value)
+                          }
+                        />
+                      </Field>
+                    </FieldGroup>
                   </div>
                   <div>
                     <Button
@@ -338,6 +363,7 @@ export default function WeeklyScheduleDialog({
                   start: 600,
                   end: 660,
                   type: 1,
+                  room: "",
                 },
               ]);
             }}
