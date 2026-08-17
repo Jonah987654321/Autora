@@ -133,7 +133,6 @@
       "server": "Beim Laden des Moduls ist ein Fehler aufgetreten",
       "serverAction": "Erneut versuchen"
     },
-    "loading": "Modul wird geladen...",
     "semester": "Semester",
     "title": "Modul",
     "tooltipsOptions": {

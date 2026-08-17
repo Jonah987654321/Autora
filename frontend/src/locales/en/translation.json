@@ -100,7 +100,6 @@
   },
   "course": {
     "title": "Course",
-    "loading": "Loading course...",
     "errors": {
       "server": "An error occurred while fetching the course data.",
       "serverAction": "Retry",
