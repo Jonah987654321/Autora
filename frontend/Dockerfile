@@ -1,5 +1,5 @@
 # --- Stage 1: Install dependencies
-FROM node:24-alpine AS deps
+FROM node:24.19.0-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -13,7 +13,7 @@ COPY . .
 RUN npm run build
 
 # --- Stage 2: Serve built app via nginx
-FROM nginx:stable-alpine AS production
+FROM nginx:1.31.4-alpine AS production
 
 COPY ./nginx/default.conf /etc/nginx/conf.d/default.conf
 

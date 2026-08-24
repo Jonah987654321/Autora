@@ -1,6 +1,38 @@
+x-database-template: &db-template
+  image: mongo:8.2.12
+  networks:
+    default:
+      aliases:
+        - mongodb_host
+  environment:
+    MONGO_INITDB_ROOT_USERNAME: admin
+    MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ADMIN_PASSWORD}
+    MONGO_INITDB_DATABASE: ${MONGO_DATABASE_NAME}
+
+    # Pass through for init script
+    MONGO_USER_NAME: ${MONGO_USER_NAME}
+    MONGO_USER_PWD: ${MONGO_USER_PWD}
+  volumes:
+    # Persistent data
+    - mongodb_data:/data/db
+    # Init script
+    - ./docker/mongodb/init.js:/docker-entrypoint-initdb.d/init.js:ro
+x-backend-template: &backend-template
+  env_file:
+    - .env
+  networks:
+    default:
+      aliases:
+        - backend_host
+x-frontend-template: &frontend-template
+  networks:
+    default:
+      aliases:
+        - frontend_host
+
 services:
   caddy:
-    image: caddy:latest
+    image: caddy:2.11.4-alpine
     restart: unless-stopped
     ports:
       - "80:80"
@@ -18,105 +50,52 @@ services:
   # --- MongoDB services
   # production
   mongodb:
+    <<: *db-template
     profiles: ["production"]
-    image: mongo:latest
     restart: unless-stopped
-    networks:
-      default:
-        aliases:
-          - mongodb_host
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ADMIN_PASSWORD}
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE_NAME}
-
-      # Pass through for init script
-      MONGO_USER_NAME: ${MONGO_USER_NAME}
-      MONGO_USER_PWD: ${MONGO_USER_PWD}
-    volumes:
-      # Persistent data
-      - mongodb_data:/data/db
-      # Init script
-      - ./docker/mongodb/init.js:/docker-entrypoint-initdb.d/init.js:ro
   # development, exposed port
   mongodb-dev:
+    <<: *db-template
     profiles: ["development"]
-    image: mongo:latest
-    restart: unless-stopped
-    networks:
-      default:
-        aliases:
-          - mongodb_host
     ports:
       - 27017:27017
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ADMIN_PASSWORD}
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE_NAME}
-
-      # Pass through for init script
-      MONGO_USER_NAME: ${MONGO_USER_NAME}
-      MONGO_USER_PWD: ${MONGO_USER_PWD}
-    volumes:
-      # Persistent data
-      - mongodb_data:/data/db
-      # Init script
-      - ./docker/mongodb/init.js:/docker-entrypoint-initdb.d/init.js:ro
 
   # --- Backend (go) services
   # for production, static-build
   backend:
+    <<: *backend-template
     profiles: ["production"]
     build:
       context: ./backend
       target: production
-    env_file:
-      - .env
+    restart: unless-stopped
     depends_on:
       - mongodb
-    restart: unless-stopped
-    networks:
-      default:
-        aliases:
-          - backend_host
   # for development, hot-reload
   backend-dev:
+    <<: *backend-template
     profiles: ["development"]
     build:
       context: ./backend
       target: development
-    env_file:
-      - .env
     depends_on:
       - mongodb-dev
-    restart: unless-stopped
     volumes:
       - ./backend:/app
-    networks:
-      default:
-        aliases:
-          - backend_host
 
   # --- Frontend (React) services
   # for production, single-page built application
   frontend:
+    <<: *frontend-template
     profiles: ["production"]
-    build: 
+    build:
       context: ./frontend
       target: production
     restart: unless-stopped
-    networks:
-      default:
-        aliases:
-          - frontend_host
   # for development, hot-reload
   frontend-dev:
+    <<: *frontend-template
     profiles: ["development"]
-    restart: unless-stopped
-    networks:
-      default:
-        aliases:
-          - frontend_host
     build:
       context: ./frontend
       target: development
@@ -124,7 +103,7 @@ services:
       - ./frontend:/app
       # prevent node modules from being overwritten
       - /app/node_modules
-  
+
 volumes:
   mongodb_data:
   caddy_data:
