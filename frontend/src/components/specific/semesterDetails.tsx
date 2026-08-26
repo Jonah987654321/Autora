@@ -24,8 +24,8 @@ import {
 import { ScrollArea } from "../ui/scroll-area";
 import { useEffect, useState } from "react";
 import type ModuleData from "@/models/module";
-import { Spinner } from "../ui/spinner";
 import ModuleDialog from "./moduleDialog";
+import { Skeleton } from "../ui/skeleton";
 
 interface SemesterDetailsProps {
   semester: SemesterData;
@@ -151,17 +151,13 @@ export default function SemesterDetails({
         <div
           className={
             modulesLoading
-              ? "flex-1 pt-5 flex items-center justify-center"
+              ? "pt-5 space-y-2"
               : "hidden"
           }
         >
-          <div className="flex flex-col items-center gap-4">
-            <Spinner className="h-8 w-8 text-muted-foreground" />
-
-            <p className="text-sm font-medium text-muted-foreground animate-pulse">
-              {t("semesters.detailView.modulesLoading")}
-            </p>
-          </div>
+          <Skeleton className="w-full h-15 rounded-md"/>
+          <Skeleton className="w-full h-15 rounded-md"/>
+          <Skeleton className="w-full h-15 rounded-md"/>
         </div>
         <div
           className={
@@ -183,7 +179,7 @@ export default function SemesterDetails({
             !modulesLoading && modules.length > 0 ? "flex-1 min-h-0" : "hidden"
           }
         >
-          <ScrollArea className="h-full pr-4" type="always">
+          <ScrollArea className="h-full" type="always">
             {modules.map((m) => {
               return <Module data={m} key={m.id} />;
             })}

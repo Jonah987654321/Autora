@@ -41,14 +41,14 @@ export default function PageSemester() {
     try {
       const data = await loadAllSemesters(signal);
       setSemesters(data);
+      setSemestersLoading(false);
     } catch (error: any) {
       if (axios.isCancel(error)) {
         return;
       }
       setLoadingError(true);
-      console.error("Error loading semesters:", error);
-    } finally {
       setSemestersLoading(false);
+      console.error("Error loading semesters:", error);
     }
   };
 
