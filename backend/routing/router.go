@@ -3,14 +3,13 @@ package routing
 import (
 	"autora-backend/academic"
 	"autora-backend/auth"
+	"autora-backend/database"
 	"autora-backend/mw"
 	"autora-backend/token"
 	"net/http"
-
-	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-func CreateRouter(db *mongo.Database, jwtService *token.JWTService) *http.ServeMux {
+func CreateRouter(collections database.AllCollections, jwtService *token.JWTService) *http.ServeMux {
 	router := http.NewServeMux()
 
 	// --- Everything that is not explicitly handled by other routes -> 404
@@ -18,7 +17,7 @@ func CreateRouter(db *mongo.Database, jwtService *token.JWTService) *http.ServeM
 
 	// --- Authentication & user handling
 	authDB := &auth.AuthActionsMongo{
-		Database: db,
+		Collection: collections.Auth,
 	}
 	authService := auth.NewService(authDB, jwtService)
 	refreshTokenTTL := int(jwtService.GetConfig().RefreshTokenTTL.Seconds())
@@ -32,7 +31,7 @@ func CreateRouter(db *mongo.Database, jwtService *token.JWTService) *http.ServeM
 
 	// --- Semester-related routes
 	semestersDB := &academic.MongoSemesterActions{
-		Database: db,
+		Collection: collections.Semesters,
 	}
 	router.Handle("POST /academic/semesters", academic.NewCreateSemesterHandler(authMW, semestersDB))
 	router.Handle("GET /academic/semesters", academic.NewGetAllSemestersHandler(authMW, semestersDB))
@@ -42,7 +41,8 @@ func CreateRouter(db *mongo.Database, jwtService *token.JWTService) *http.ServeM
 
 	// --- Module-related routes
 	moduleDB := &academic.MongoModuleActions{
-		Database: db,
+		CollectionModules:  collections.Modules,
+		CollectionSemester: collections.Semesters,
 	}
 	router.Handle("POST /academic/semesters/{id}/modules", academic.NewCreateModuleHandler(authMW, moduleDB))
 	router.Handle("GET /academic/semesters/{id}/modules", academic.NewModuleBySemesterHandler(authMW, moduleDB))

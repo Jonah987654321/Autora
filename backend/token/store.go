@@ -11,8 +11,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-const COLLECTION = "tokenStore"
-
 // --- Structure for the database
 type UserStore struct {
 	UserID        bson.ObjectID `bson:"_id"`
@@ -20,19 +18,17 @@ type UserStore struct {
 	RefreshTokens []string      `bson:"refreshTokens"`
 }
 
-func NewTokenStore(db *mongo.Database) TokenStore {
+func NewTokenStore(collection *mongo.Collection) TokenStore {
 	return TokenStore{
-		db: db,
+		Collection: collection,
 	}
 }
 
 type TokenStore struct {
-	db *mongo.Database
+	Collection *mongo.Collection
 }
 
 func (ts *TokenStore) createUserStore(ctx context.Context, userID bson.ObjectID) (UserStore, error) {
-	col := ts.db.Collection(COLLECTION)
-
 	data := UserStore{
 		UserID:        userID,
 		TokenVersion:  0,
@@ -41,7 +37,7 @@ func (ts *TokenStore) createUserStore(ctx context.Context, userID bson.ObjectID)
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	_, err := col.InsertOne(dbCtx, data)
+	_, err := ts.Collection.InsertOne(dbCtx, data)
 	if err != nil {
 		return UserStore{}, fmt.Errorf("error on writing to database: %w", err)
 	}
@@ -49,14 +45,12 @@ func (ts *TokenStore) createUserStore(ctx context.Context, userID bson.ObjectID)
 }
 
 func (ts *TokenStore) getUserStore(ctx context.Context, userID bson.ObjectID) (UserStore, error) {
-	col := ts.db.Collection(COLLECTION)
-
 	var userData UserStore
 	filter := bson.M{"_id": userID}
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	err := col.FindOne(dbCtx, filter).Decode(&userData)
+	err := ts.Collection.FindOne(dbCtx, filter).Decode(&userData)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			res, err := ts.createUserStore(ctx, userID)
@@ -88,8 +82,6 @@ func (ts *TokenStore) GetUserTokenVersion(ctx context.Context, userID string) (i
 }
 
 func (ts *TokenStore) StoreRefreshToken(ctx context.Context, tokenID, userID string) error {
-	col := ts.db.Collection(COLLECTION)
-
 	userObjectId, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
 		return fmt.Errorf("failed to convert userID to ObjectID: %w", err)
@@ -111,7 +103,7 @@ func (ts *TokenStore) StoreRefreshToken(ctx context.Context, tokenID, userID str
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	_, err = col.UpdateByID(dbCtx, userObjectId, updateOp, options)
+	_, err = ts.Collection.UpdateByID(dbCtx, userObjectId, updateOp, options)
 
 	if err != nil {
 		return fmt.Errorf("failed to insert new token: %w", err)
@@ -121,13 +113,11 @@ func (ts *TokenStore) StoreRefreshToken(ctx context.Context, tokenID, userID str
 }
 
 func (ts *TokenStore) IsRefreshTokenValid(ctx context.Context, tokenID string) (bool, error) {
-	col := ts.db.Collection(COLLECTION)
-
 	filter := bson.M{"refreshTokens": tokenID}
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	err := col.FindOne(dbCtx, filter).Err()
+	err := ts.Collection.FindOne(dbCtx, filter).Err()
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil
@@ -139,8 +129,6 @@ func (ts *TokenStore) IsRefreshTokenValid(ctx context.Context, tokenID string) (
 }
 
 func (ts *TokenStore) RevokeRefreshToken(ctx context.Context, tokenID string) error {
-	col := ts.db.Collection(COLLECTION)
-
 	updateOp := bson.M{
 		"$pull": bson.M{
 			"refreshTokens": tokenID,
@@ -150,7 +138,7 @@ func (ts *TokenStore) RevokeRefreshToken(ctx context.Context, tokenID string) er
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	_, err := col.UpdateOne(dbCtx, filter, updateOp)
+	_, err := ts.Collection.UpdateOne(dbCtx, filter, updateOp)
 	if err != nil {
 		return fmt.Errorf("removing token from database failed: %w", err)
 	}
@@ -158,8 +146,6 @@ func (ts *TokenStore) RevokeRefreshToken(ctx context.Context, tokenID string) er
 }
 
 func (ts *TokenStore) IncrementUserTokenVersion(ctx context.Context, userID string) error {
-	col := ts.db.Collection(COLLECTION)
-
 	userObjectId, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
 		return fmt.Errorf("failed to convert userID to ObjectID: %w", err)
@@ -173,7 +159,7 @@ func (ts *TokenStore) IncrementUserTokenVersion(ctx context.Context, userID stri
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	_, err = col.UpdateByID(dbCtx, userObjectId, updateOp)
+	_, err = ts.Collection.UpdateByID(dbCtx, userObjectId, updateOp)
 	if err != nil {
 		return fmt.Errorf("database update failed: %w", err)
 	}
@@ -182,8 +168,6 @@ func (ts *TokenStore) IncrementUserTokenVersion(ctx context.Context, userID stri
 }
 
 func (ts *TokenStore) RevokeAllRefreshTokens(ctx context.Context, userID string) error {
-	col := ts.db.Collection(COLLECTION)
-
 	userObjectId, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
 		return fmt.Errorf("failed to convert userID to ObjectID: %w", err)
@@ -197,7 +181,7 @@ func (ts *TokenStore) RevokeAllRefreshTokens(ctx context.Context, userID string)
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	_, err = col.UpdateByID(dbCtx, userObjectId, updateOp)
+	_, err = ts.Collection.UpdateByID(dbCtx, userObjectId, updateOp)
 	if err != nil {
 		return fmt.Errorf("database update failed: %w", err)
 	}

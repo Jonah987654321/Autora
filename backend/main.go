@@ -53,16 +53,17 @@ func main() {
 		slog.Error("Indices setup failed", " error", err)
 		os.Exit(1)
 	}
+	collections := database.GetAllCollections(db)
 	slog.Info("Connection to mongoDB established")
 
 	// ---JWT setup
 	jwtConfig := token.GenerateConfig(cfg.Jwt.AccessSecret, cfg.Jwt.RefreshSecret)
-	jwtStore := token.NewTokenStore(db)
+	jwtStore := token.NewTokenStore(collections.TokenStore)
 	jwtService := token.NewJWTService(jwtConfig, jwtStore)
 
 	// --- Router config & start
 	// Get the router with routes
-	router := routing.CreateRouter(db, &jwtService)
+	router := routing.CreateRouter(collections, &jwtService)
 	server := http.Server{
 		Addr:    ":8080",
 		Handler: router,

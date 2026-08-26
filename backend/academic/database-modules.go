@@ -10,8 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-const COLLECTION_MODULES = "modules"
-
 var (
 	ErrNoSuchModule = errors.New("modules: no matching module found")
 )
@@ -37,7 +35,8 @@ type Module struct {
 }
 
 type MongoModuleActions struct {
-	Database *mongo.Database
+	CollectionModules  *mongo.Collection
+	CollectionSemester *mongo.Collection
 }
 
 func (a *MongoModuleActions) GetModulesForSemester(ctx context.Context, userID, semesterID string) ([]Module, error) {
@@ -54,7 +53,7 @@ func (a *MongoModuleActions) GetModulesForSemester(ctx context.Context, userID, 
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	res, err := a.Database.Collection(COLLECTION_MODULES).Find(dbCtx, filter)
+	res, err := a.CollectionModules.Find(dbCtx, filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch from database: %w", err)
 	}
@@ -94,7 +93,7 @@ func (a *MongoModuleActions) CreateModule(ctx context.Context, userID, semesterI
 
 	dbCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
 	defer cancel()
-	err = a.Database.Collection(COLLECTION_SEMESTERS).FindOne(dbCtx, bson.M{"_id": semesterObjectID, "userID": userObjectId}).Err()
+	err = a.CollectionSemester.FindOne(dbCtx, bson.M{"_id": semesterObjectID, "userID": userObjectId}).Err()
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNoSuchSemester
@@ -102,7 +101,7 @@ func (a *MongoModuleActions) CreateModule(ctx context.Context, userID, semesterI
 
 		return nil, fmt.Errorf("failed to check if semester exists: %w", err)
 	}
-	_, err = a.Database.Collection(COLLECTION_MODULES).InsertOne(dbCtx, newModule)
+	_, err = a.CollectionModules.InsertOne(dbCtx, newModule)
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert into database: %w", err)
 	}
@@ -124,7 +123,7 @@ func (a *MongoModuleActions) GetModuleByID(ctx context.Context, userID, moduleID
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	err = a.Database.Collection(COLLECTION_MODULES).FindOne(dbCtx, bson.M{"_id": moduleObjectId, "userID": userObjectId}).Decode(&result)
+	err = a.CollectionModules.FindOne(dbCtx, bson.M{"_id": moduleObjectId, "userID": userObjectId}).Decode(&result)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNoSuchModule
@@ -189,7 +188,7 @@ func (a *MongoModuleActions) EditModule(ctx context.Context, userID, moduleID st
 	defer cancel()
 
 	// --- Validate semester exists
-	err = a.Database.Collection(COLLECTION_SEMESTERS).FindOne(dbCtx, bson.M{"_id": semesterObjectID, "userID": userObjectId}).Err()
+	err = a.CollectionSemester.FindOne(dbCtx, bson.M{"_id": semesterObjectID, "userID": userObjectId}).Err()
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNoSuchSemester
@@ -199,7 +198,7 @@ func (a *MongoModuleActions) EditModule(ctx context.Context, userID, moduleID st
 	}
 
 	// --- Perform actual update
-	res, err := a.Database.Collection(COLLECTION_MODULES).UpdateOne(dbCtx, filter, updateOp)
+	res, err := a.CollectionModules.UpdateOne(dbCtx, filter, updateOp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update database: %w", err)
 	}
@@ -243,7 +242,7 @@ func (a *MongoModuleActions) SetWeeklySchedule(ctx context.Context, userID, modu
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	res, err := a.Database.Collection(COLLECTION_MODULES).UpdateOne(dbCtx, filter, updateOp)
+	res, err := a.CollectionModules.UpdateOne(dbCtx, filter, updateOp)
 	if err != nil {
 		return fmt.Errorf("failed to update weekly schedule: %w", err)
 	}

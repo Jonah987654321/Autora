@@ -10,8 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-const COLLECTION = "users"
-
 var ErrInvalidCredentials = errors.New("auth: invalid credentials")
 var ErrEmailAlreadyExisting = errors.New("auth: email already registered")
 
@@ -28,7 +26,7 @@ type InsertSignup struct {
 }
 
 type AuthActionsMongo struct {
-	Database *mongo.Database
+	Collection *mongo.Collection
 }
 
 func (a *AuthActionsMongo) Login(ctx context.Context, data LoginData) (string, error) {
@@ -38,7 +36,7 @@ func (a *AuthActionsMongo) Login(ctx context.Context, data LoginData) (string, e
 	// Set a timeout for the database operation
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	err := a.Database.Collection(COLLECTION).FindOne(ctx, filter).Decode(&user)
+	err := a.Collection.FindOne(ctx, filter).Decode(&user)
 
 	// --- Possible error handling
 	if err != nil {
@@ -74,7 +72,7 @@ func (a *AuthActionsMongo) Signup(ctx context.Context, data SignupData) (string,
 
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	_, err = a.Database.Collection(COLLECTION).InsertOne(ctx, insert)
+	_, err = a.Collection.InsertOne(ctx, insert)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			return "", ErrEmailAlreadyExisting
@@ -96,7 +94,7 @@ func (a *AuthActionsMongo) VerifyUserID(ctx context.Context, id string) (bool, e
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	err = a.Database.Collection(COLLECTION).FindOne(dbCtx, filter).Err()
+	err = a.Collection.FindOne(dbCtx, filter).Err()
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil

@@ -1,7 +1,6 @@
 package database
 
 import (
-	"autora-backend/auth"
 	"autora-backend/config"
 	"context"
 	"errors"
@@ -15,9 +14,26 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-const CONNECTION_RETRIES = 5
+const (
+	CONNECTION_RETRIES = 5
+
+	// Collection names
+	COLNAME_TokenStore = "tokenStore"
+	COLNAME_Auth       = "users"
+	COLNAME_Modules    = "modules"
+	COLNAME_Semesters  = "semesters"
+	COLNAME_Events     = "events"
+)
 
 var ErrConnectingInterrupted = errors.New("interrupt while establishing connection")
+
+type AllCollections struct {
+	TokenStore *mongo.Collection
+	Auth       *mongo.Collection
+	Modules    *mongo.Collection
+	Semesters  *mongo.Collection
+	Events     *mongo.Collection
+}
 
 func Init(cfg config.Database, quit <-chan os.Signal) (*mongo.Client, error) {
 	// Connection URI & client instance
@@ -63,7 +79,7 @@ func Disconnect(client *mongo.Client) {
 
 func SetupIndices(db *mongo.Database) error {
 	// --- Auth collection index
-	colAuth := db.Collection(auth.COLLECTION)
+	colAuth := db.Collection(COLNAME_Auth)
 	// Define model for email to be unique
 	model := mongo.IndexModel{
 		Keys:    bson.D{{Key: "email", Value: 1}},
@@ -79,4 +95,14 @@ func SetupIndices(db *mongo.Database) error {
 	}
 
 	return nil
+}
+
+func GetAllCollections(db *mongo.Database) AllCollections {
+	return AllCollections{
+		TokenStore: db.Collection(COLNAME_TokenStore),
+		Auth:       db.Collection(COLNAME_Auth),
+		Modules:    db.Collection(COLNAME_Modules),
+		Semesters:  db.Collection(COLNAME_Semesters),
+		Events:     db.Collection(COLNAME_Events),
+	}
 }

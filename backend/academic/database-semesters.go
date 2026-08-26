@@ -11,8 +11,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-const COLLECTION_SEMESTERS = "semesters"
-
 type Semester struct {
 	ID        bson.ObjectID `bson:"_id,omitempty" json:"id"`
 	UserID    bson.ObjectID `bson:"userID" json:"-"`
@@ -22,7 +20,7 @@ type Semester struct {
 }
 
 type MongoSemesterActions struct {
-	Database *mongo.Database
+	Collection *mongo.Collection
 }
 
 var (
@@ -38,12 +36,12 @@ func (a *MongoSemesterActions) doesSemesterOverlap(ctx context.Context, userID b
 	}}
 
 	if exclude != nil {
-        findOverlapping["_id"] = bson.M{"$ne": *exclude}
-    }
+		findOverlapping["_id"] = bson.M{"$ne": *exclude}
+	}
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	err := a.Database.Collection(COLLECTION_SEMESTERS).FindOne(dbCtx, findOverlapping).Err()
+	err := a.Collection.FindOne(dbCtx, findOverlapping).Err()
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil
@@ -80,7 +78,7 @@ func (a *MongoSemesterActions) CreateSemester(ctx context.Context, userID string
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	_, err = a.Database.Collection(COLLECTION_SEMESTERS).InsertOne(dbCtx, insertData)
+	_, err = a.Collection.InsertOne(dbCtx, insertData)
 	if err != nil {
 		return "", fmt.Errorf("failed to insert into database: %w", err)
 	}
@@ -99,7 +97,7 @@ func (a *MongoSemesterActions) GetAllSemesters(ctx context.Context, userID strin
 
 	dbCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
 	defer cancel()
-	res, err := a.Database.Collection(COLLECTION_SEMESTERS).Find(dbCtx, filter, findOptions)
+	res, err := a.Collection.Find(dbCtx, filter, findOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch from database: %w", err)
 	}
@@ -136,7 +134,7 @@ func (a *MongoSemesterActions) GetActiveSemester(ctx context.Context, userID str
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	var current Semester
-	err = a.Database.Collection(COLLECTION_SEMESTERS).FindOne(dbCtx, filter).Decode(&current)
+	err = a.Collection.FindOne(dbCtx, filter).Decode(&current)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
@@ -165,7 +163,7 @@ func (a *MongoSemesterActions) GetSemesterByID(ctx context.Context, userID, seme
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	err = a.Database.Collection(COLLECTION_SEMESTERS).FindOne(dbCtx, filter).Decode(&semester)
+	err = a.Collection.FindOne(dbCtx, filter).Decode(&semester)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrNoSuchSemester
@@ -209,7 +207,7 @@ func (a *MongoSemesterActions) EditSemester(ctx context.Context, userID, semeste
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	res, err := a.Database.Collection(COLLECTION_SEMESTERS).UpdateOne(dbCtx, filter, updateOp)
+	res, err := a.Collection.UpdateOne(dbCtx, filter, updateOp)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to update database: %w", err)
 	}
