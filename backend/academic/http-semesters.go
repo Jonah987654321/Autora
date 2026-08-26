@@ -51,16 +51,10 @@ func (h *CreateSemesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// --- Get userID
-	claims, err := token.GetClaimsFromContext(r.Context())
-	if err != nil {
-		slog.Error("missing token claims in context")
-		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
+	userID := token.GetUserIDFromContext(r.Context())
 
 	// --- Create it in the database
-	createdID, err := h.actions.CreateSemester(r.Context(), claims.UserID, data)
+	createdID, err := h.actions.CreateSemester(r.Context(), userID, data)
 	if err != nil {
 		if errors.Is(err, ErrSemesterOverlapping) {
 			mw.SetErrorAsJSON(w, "Semesters cannot overlap", http.StatusConflict)
@@ -93,14 +87,7 @@ type GetAllSemestersHandler struct {
 }
 
 func (h *GetAllSemestersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// --- Get userID
-	claims, err := token.GetClaimsFromContext(r.Context())
-	if err != nil {
-		slog.Error("missing token claims in context")
-		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	userID := claims.UserID
+	userID := token.GetUserIDFromContext(r.Context())
 
 	semesters, err := h.actions.GetAllSemesters(r.Context(), userID)
 	if err != nil {
@@ -127,14 +114,7 @@ type GetActiveSemesterHandler struct {
 }
 
 func (h *GetActiveSemesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// --- Get userID
-	claims, err := token.GetClaimsFromContext(r.Context())
-	if err != nil {
-		slog.Error("missing token claims in context")
-		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	userID := claims.UserID
+	userID := token.GetUserIDFromContext(r.Context())
 
 	activeSemesters, err := h.actions.GetActiveSemester(r.Context(), userID)
 	if err != nil {
@@ -161,18 +141,10 @@ type GetSemesterByIDHandler struct {
 }
 
 func (h *GetSemesterByIDHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// --- Get userID
-	claims, err := token.GetClaimsFromContext(r.Context())
-	if err != nil {
-		slog.Error("missing token claims in context")
-		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	userID := claims.UserID
+	userID := token.GetUserIDFromContext(r.Context())
+	semesterID := r.PathValue("id")
 
-	id := r.PathValue("id")
-
-	matchedSemester, err := h.actions.GetSemesterByID(r.Context(), userID, id)
+	matchedSemester, err := h.actions.GetSemesterByID(r.Context(), userID, semesterID)
 
 	if err != nil {
 		if errors.Is(err, ErrNoSuchSemester) {
@@ -180,7 +152,7 @@ func (h *GetSemesterByIDHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		slog.Error("Get semester by id failed", "error", err, "semesterId", id)
+		slog.Error("Get semester by id failed", "error", err, "semesterId", semesterID)
 		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -199,38 +171,32 @@ func NewGetSemesterByIDHandler(authMiddleware mw.Middleware, actions SemesterAct
 
 // --- Edit a semester
 type EditSemesterRequest struct {
-	Name       string    `json:"name"`
-	StartDate  JBsonTime `json:"startDate"`
-	EndDate    JBsonTime `json:"endDate"`
+	Name      string    `json:"name"`
+	StartDate JBsonTime `json:"startDate"`
+	EndDate   JBsonTime `json:"endDate"`
 }
 type EditSemesterHandler struct {
 	SemesterHandler
 }
+
 func (h *EditSemesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// --- Get userID
-	claims, err := token.GetClaimsFromContext(r.Context())
-	if err != nil {
-		slog.Error("missing token claims in context")
-		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	userID := claims.UserID
+	userID := token.GetUserIDFromContext(r.Context())
 
 	var requestData EditSemesterRequest
-	err = json.NewDecoder(r.Body).Decode(&requestData)
+	err := json.NewDecoder(r.Body).Decode(&requestData)
 	if err != nil {
 		mw.SetErrorAsJSON(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if requestData.EndDate.Before(requestData.StartDate.Time) {
-        mw.SetErrorAsJSON(w, "start date cannot be after end date", http.StatusBadRequest)
-        return
-    }
-    if requestData.Name == "" {
-        mw.SetErrorAsJSON(w, "name cannot be empty", http.StatusBadRequest)
-        return
-    }
+		mw.SetErrorAsJSON(w, "start date cannot be after end date", http.StatusBadRequest)
+		return
+	}
+	if requestData.Name == "" {
+		mw.SetErrorAsJSON(w, "name cannot be empty", http.StatusBadRequest)
+		return
+	}
 
 	id := r.PathValue("id")
 

@@ -27,14 +27,7 @@ type ModuleBySemesterHandler struct {
 }
 
 func (h *ModuleBySemesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	claims, err := token.GetClaimsFromContext(r.Context())
-	if err != nil {
-		slog.Error("missing token claims in context")
-		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	userID := claims.UserID
-
+	userID := token.GetUserIDFromContext(r.Context())
 	semesterId := r.PathValue("id")
 
 	modules, err := h.actions.GetModulesForSemester(r.Context(), userID, semesterId)
@@ -68,18 +61,11 @@ type CreateModuleHandler struct {
 }
 
 func (h *CreateModuleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	claims, err := token.GetClaimsFromContext(r.Context())
-	if err != nil {
-		slog.Error("missing token claims in context")
-		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	userID := claims.UserID
-
+	userID := token.GetUserIDFromContext(r.Context())
 	semesterId := r.PathValue("id")
 
 	var req CreateModuleRequest
-	err = json.NewDecoder(r.Body).Decode(&req)
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		mw.SetErrorAsJSON(w, "invalid request body", http.StatusBadRequest)
 		return
@@ -125,25 +111,17 @@ type GetModuleByIDHandler struct {
 }
 
 func (h *GetModuleByIDHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// --- Get userID
-	claims, err := token.GetClaimsFromContext(r.Context())
-	if err != nil {
-		slog.Error("missing token claims in context")
-		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	userID := claims.UserID
+	userID := token.GetUserIDFromContext(r.Context())
+	moduleID := r.PathValue("id")
 
-	id := r.PathValue("id")
-
-	module, err := h.actions.GetModuleByID(r.Context(), userID, id)
+	module, err := h.actions.GetModuleByID(r.Context(), userID, moduleID)
 	if err != nil {
 		if errors.Is(err, ErrNoSuchModule) {
 			mw.SetErrorAsJSON(w, "module not found", http.StatusNotFound)
 			return
 		}
 
-		slog.Error("Get module by id failed", "error", err, "moduleID", id)
+		slog.Error("Get module by id failed", "error", err, "moduleID", moduleID)
 		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -173,18 +151,11 @@ type EditModuleRequest struct {
 }
 
 func (h *EditModuleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	claims, err := token.GetClaimsFromContext(r.Context())
-	if err != nil {
-		slog.Error("missing token claims in context")
-		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	userID := claims.UserID
-
+	userID := token.GetUserIDFromContext(r.Context())
 	moduleID := r.PathValue("id")
 
 	var req EditModuleRequest
-	err = json.NewDecoder(r.Body).Decode(&req)
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		mw.SetErrorAsJSON(w, "invalid request body", http.StatusBadRequest)
 		return
@@ -234,18 +205,11 @@ type SetWeeklyScheduleHandler struct {
 }
 
 func (h *SetWeeklyScheduleHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	claims, err := token.GetClaimsFromContext(r.Context())
-	if err != nil {
-		slog.Error("missing token claims in context")
-		mw.SetErrorAsJSON(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	userID := claims.UserID
-
+	userID := token.GetUserIDFromContext(r.Context())
 	moduleID := r.PathValue("id")
 
 	var data []WeeklyScheduleEntry
-	err = json.NewDecoder(r.Body).Decode(&data)
+	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
 		mw.SetErrorAsJSON(w, "invalid request body", http.StatusBadRequest)
 		return
@@ -258,8 +222,8 @@ func (h *SetWeeklyScheduleHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 			el.End < 0 || el.End > 24*60 ||
 			el.Start >= el.End ||
 			el.Type < 0 || el.Type > 8 {
-				mw.SetErrorAsJSON(w, "invalid entry data", http.StatusBadRequest)
-				return
+			mw.SetErrorAsJSON(w, "invalid entry data", http.StatusBadRequest)
+			return
 		}
 	}
 

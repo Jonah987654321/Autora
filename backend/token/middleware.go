@@ -1,6 +1,6 @@
 package token
 
-// --- Source code from
+// --- Source code taken from but modified
 // https://oneuptime.com/blog/post/2026-01-07-go-jwt-authentication/
 
 import (
@@ -19,6 +19,7 @@ type ContextKey string
 const (
 	// ClaimsContextKey is the context key for storing JWT claims.
 	ClaimsContextKey ContextKey = "claims"
+	UserIDContextKey ContextKey = "userID"
 )
 
 // AuthMiddleware creates an HTTP middleware that validates JWT tokens.
@@ -57,7 +58,9 @@ func AuthMiddleware(jwtService *JWTService) mw.Middleware {
 			}
 
 			// Add claims to the request context
-			ctx := context.WithValue(r.Context(), ClaimsContextKey, claims)
+			// We also extract the userID and add it additionally into the context
+			// This enables endpoints to only get the userID without needing to handle errors for parsing claims
+			ctx := context.WithValue(context.WithValue(r.Context(), ClaimsContextKey, claims), UserIDContextKey, claims.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -70,4 +73,8 @@ func GetClaimsFromContext(ctx context.Context) (*CustomClaims, error) {
 		return nil, ErrNoClaimsInContext
 	}
 	return claims, nil
+}
+
+func GetUserIDFromContext(ctx context.Context) string {
+	return ctx.Value(UserIDContextKey).(string)
 }
