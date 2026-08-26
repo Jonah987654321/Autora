@@ -158,11 +158,10 @@ export default function PageCourse() {
                   {moduleData !== undefined ? (
                     <>
                       <CourseMetatag
-                        content={`${t("course.status")}: ${
-                          moduleData.grade !== undefined
-                            ? `${t("course.statusCompleted")} (${moduleData.grade})`
-                            : t("course.statusInProgress")
-                        }`}
+                        content={`${t("course.status")}: ${moduleData.grade !== undefined
+                          ? `${t("course.statusCompleted")} (${moduleData.grade})`
+                          : t("course.statusInProgress")
+                          }`}
                       />
                       {moduleData.ects !== undefined ? (
                         <CourseMetatag
@@ -183,65 +182,65 @@ export default function PageCourse() {
               <div className="flex justify-center items-center h-full space-x-2">
                 {semesterData !== undefined && moduleData !== undefined && (
                   <>
-                    <SemesterTransfer
-                      current={semesterData.id}
-                      processTransfer={async (target: string) => {
-                        await editModule(
-                          moduleData.id,
-                          target,
-                          moduleData.name,
-                          moduleData.abbreviation,
-                          moduleData.color,
-                          moduleData.ects,
-                          moduleData.grade,
-                        );
-                        fetchCourse();
-                      }}
-                    >
-                      <Tooltip>
+                    <Tooltip>
+                      <SemesterTransfer
+                        current={semesterData.id}
+                        processTransfer={async (target: string) => {
+                          await editModule(
+                            moduleData.id,
+                            target,
+                            moduleData.name,
+                            moduleData.abbreviation,
+                            moduleData.color,
+                            moduleData.ects,
+                            moduleData.grade,
+                          );
+                          fetchCourse();
+                        }}
+                      >
                         <TooltipTrigger asChild>
                           <Button variant="secondary" size="icon-lg">
                             <ArrowLeftRight />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t("course.tooltipsOptions.transferSemester")}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </SemesterTransfer>
-                    <ModuleDialog
-                      mode="edit"
-                      onSave={async (
-                        name: string,
-                        abbr: string,
-                        color: string,
-                        ects?: number,
-                        grade?: string,
-                      ) => {
-                        await editModule(
-                          moduleData.id,
-                          semesterData.id,
-                          name,
-                          abbr,
-                          color,
-                          ects,
-                          grade,
-                        );
-                        fetchCourse();
-                      }}
-                      initialData={moduleData}
-                    >
-                      <Tooltip>
+                      </SemesterTransfer>
+                      <TooltipContent>
+                        <p>{t("course.tooltipsOptions.transferSemester")}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <ModuleDialog
+                        mode="edit"
+                        onSave={async (
+                          name: string,
+                          abbr: string,
+                          color: string,
+                          ects?: number,
+                          grade?: string,
+                        ) => {
+                          await editModule(
+                            moduleData.id,
+                            semesterData.id,
+                            name,
+                            abbr,
+                            color,
+                            ects,
+                            grade,
+                          );
+                          fetchCourse();
+                        }}
+                        initialData={moduleData}
+                      >
                         <TooltipTrigger asChild>
                           <Button variant="secondary" size="icon-lg">
                             <Edit />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t("course.tooltipsOptions.editCourse")}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </ModuleDialog>
+                      </ModuleDialog>
+                      <TooltipContent>
+                        <p>{t("course.tooltipsOptions.editCourse")}</p>
+                      </TooltipContent>
+                    </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="destructive" size="icon-lg">
@@ -337,7 +336,7 @@ export default function PageCourse() {
                     <CardContent>
                       {!mainModuleDataLoading && moduleData !== undefined ? (
                         moduleData.weeklySchedule !== undefined &&
-                        moduleData.weeklySchedule.length > 0 ? (
+                          moduleData.weeklySchedule.length > 0 ? (
                           <div className="flex flex-col">
                             {(() => {
                               const timeFormatter = new Intl.DateTimeFormat(
