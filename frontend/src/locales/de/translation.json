@@ -161,7 +161,9 @@
       "dialogSave": "Speichern",
       "dialogSort": "Einträge sortieren",
       "dialogTitle": "Erstelle deinen Wochenplan",
-      "empty": "Noch kein Wochenplan festgelegt"
+      "empty": "Noch kein Wochenplan festgelegt",
+      "dialogLabelRoom": "Raum",
+      "dialogPlaceholderRoom": "Z.B. Raum 005.10.23"
     }
   },
   "semesterTransfer": {
