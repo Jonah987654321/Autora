@@ -3,6 +3,7 @@ package routing
 import (
 	"autora-backend/academic"
 	"autora-backend/auth"
+	"autora-backend/calendar"
 	"autora-backend/database"
 	"autora-backend/mw"
 	"autora-backend/token"
@@ -49,6 +50,16 @@ func CreateRouter(collections database.AllCollections, jwtService *token.JWTServ
 	router.Handle("GET /academic/modules/{id}", academic.NewGetModuleByIDHandler(authMW, moduleDB))
 	router.Handle("PUT /academic/modules/{id}", academic.NewEditModuleHandler(authMW, moduleDB))
 	router.Handle("PUT /academic/modules/{id}/weekly-schedule", academic.NewSetWeeklyScheduleHandler(authMW, moduleDB))
+
+	// --- Calendar (event) related routes
+	eventDB := &calendar.MongoCalendarActions{
+		CollectionCalendar: collections.Events,
+		CollectionModules:  collections.Modules,
+	}
+	router.Handle("POST /calendar/events", calendar.NewCreateEventHandler(authMW, eventDB))
+	router.Handle("PUT /calendar/events/{id}", calendar.NewUpdateEventHandler(authMW, eventDB))
+	router.Handle("DELETE /calendar/events/{id}", calendar.NewDeleteEventHandler(authMW, eventDB))
+	router.Handle("GET /calendar/modules/{id}/upcoming", calendar.NewModuleUpcomingEventHandler(authMW, eventDB))
 
 	return router
 }

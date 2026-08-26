@@ -30,19 +30,19 @@ var (
 )
 
 // Struct for providing database functions
-type CalendarActionsMongo struct {
+type MongoCalendarActions struct {
 	CollectionCalendar *mongo.Collection
 	CollectionModules  *mongo.Collection
 }
 
-func (a *CalendarActionsMongo) TruncateTimespan(req EventRequest) EventRequest {
+func (a *MongoCalendarActions) TruncateTimespan(req EventRequest) EventRequest {
 	// Start and end are truncated to millisecond as mongo Date does not store nanosecond precision
 	req.Start = req.Start.Truncate(time.Millisecond)
 	req.End = req.End.Truncate(time.Millisecond)
 	return req
 }
 
-func (a *CalendarActionsMongo) CreateEvent(ctx context.Context, userID string, req EventRequest) (*Event, error) {
+func (a *MongoCalendarActions) CreateEvent(ctx context.Context, userID string, req EventRequest) (*Event, error) {
 	req = a.TruncateTimespan(req)
 
 	// --- Parse IDs to ObjectIDs
@@ -99,7 +99,7 @@ func (a *CalendarActionsMongo) CreateEvent(ctx context.Context, userID string, r
 	return &createdEvent, nil
 }
 
-func (a *CalendarActionsMongo) UpdateEvent(ctx context.Context, userID, eventID string, req EventRequest) (*Event, error) {
+func (a *MongoCalendarActions) UpdateEvent(ctx context.Context, userID, eventID string, req EventRequest) (*Event, error) {
 	req = a.TruncateTimespan(req)
 
 	// --- Parse IDs to ObjectIDs
@@ -183,7 +183,7 @@ func (a *CalendarActionsMongo) UpdateEvent(ctx context.Context, userID, eventID 
 	}, nil
 }
 
-func (a *CalendarActionsMongo) DeleteEvent(ctx context.Context, userID, eventID string) error {
+func (a *MongoCalendarActions) DeleteEvent(ctx context.Context, userID, eventID string) error {
 	// --- Parse IDs to ObjectIDs
 	userObjectId, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
@@ -191,7 +191,7 @@ func (a *CalendarActionsMongo) DeleteEvent(ctx context.Context, userID, eventID 
 	}
 	eventObjectId, err := bson.ObjectIDFromHex(eventID)
 	if err != nil {
-		return fmt.Errorf("failed to convert eventID to ObjectID: %w", err)
+		return ErrNoSuchEvent
 	}
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
@@ -207,7 +207,7 @@ func (a *CalendarActionsMongo) DeleteEvent(ctx context.Context, userID, eventID 
 	return nil
 }
 
-func (a *CalendarActionsMongo) GetUpcomingEventsForModule(ctx context.Context, userID, moduleID string) ([]Event, error) {
+func (a *MongoCalendarActions) GetUpcomingEventsForModule(ctx context.Context, userID, moduleID string) ([]Event, error) {
 	// --- Parse IDs to ObjectIDs
 	userObjectId, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
@@ -215,7 +215,7 @@ func (a *CalendarActionsMongo) GetUpcomingEventsForModule(ctx context.Context, u
 	}
 	moduleObjectID, err := bson.ObjectIDFromHex(moduleID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert moduleID to ObjectID: %w", err)
+		return nil, ErrNoSuchModule
 	}
 
 	filter := bson.M{
