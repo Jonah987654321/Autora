@@ -60,7 +60,7 @@ export default function PageCourse() {
 
   const [noCourseError, setNoCourseError] = useState(false);
   const [serverError, setServerError] = useState(false);
-  const [mainModuleDataLoading, setMainModuleDataLoading] = useState(false);
+  const [mainModuleDataLoading, setMainModuleDataLoading] = useState(true);
 
   const [moduleData, setModuleData] = useState<ModuleData | undefined>();
   const [semesterData, setSemesterData] = useState<SemesterData | undefined>();
@@ -137,7 +137,7 @@ export default function PageCourse() {
             </div>
           </div>
         )}
-        {!mainModuleDataLoading && !serverError && !noCourseError && (
+        {!serverError && !noCourseError && (
           <div className="h-full flex flex-col">
             <div className="flex mb-3">
               <div className="flex-1">

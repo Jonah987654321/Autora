@@ -224,6 +224,9 @@ export default function EventDialog({
                   value={start}
                   onChange={(value) => {
                     setStart(value);
+                    if (end === undefined) {
+                      setEnd(value);
+                    }
                     setTimeRangeInvalid(false);
                   }}
                   invalid={timeRangeInvalid}
@@ -235,6 +238,9 @@ export default function EventDialog({
                   value={end}
                   onChange={(value) => {
                     setEnd(value);
+                    if (start === undefined) {
+                      setStart(value);
+                    }
                     setTimeRangeInvalid(false);
                   }}
                   invalid={timeRangeInvalid}
