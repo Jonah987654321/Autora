@@ -8,6 +8,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // --- Basic definitions
@@ -225,11 +226,12 @@ func (a *MongoCalendarActions) GetUpcomingEventsForModule(ctx context.Context, u
 			"$gte": time.Now().Truncate(time.Millisecond),
 		},
 	}
+	findOptions := options.Find().SetSort(bson.D{{Key: "start", Value: 1}, {Key: "end", Value: 1}})
 
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	res, err := a.CollectionCalendar.Find(dbCtx, filter)
+	res, err := a.CollectionCalendar.Find(dbCtx, filter, findOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get events from calendar: %w", err)
 	}
