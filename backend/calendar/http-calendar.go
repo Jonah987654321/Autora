@@ -49,6 +49,10 @@ func (h *CreateEventHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		mw.SetErrorAsJSON(w, "invalid time range", http.StatusBadRequest)
 		return
 	}
+	if data.Type < 0 || data.Type > 6 {
+		mw.SetErrorAsJSON(w, "invalid event type", http.StatusBadRequest)
+		return
+	}
 
 	event, err := h.actions.CreateEvent(r.Context(), userID, data)
 	if err != nil {
@@ -94,6 +98,10 @@ func (h *UpdateEventHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if data.Start.Equal(data.End) || data.Start.After(data.End) {
 		mw.SetErrorAsJSON(w, "invalid time range", http.StatusBadRequest)
+		return
+	}
+	if data.Type < 0 || data.Type > 6 {
+		mw.SetErrorAsJSON(w, "invalid event type", http.StatusBadRequest)
 		return
 	}
 
