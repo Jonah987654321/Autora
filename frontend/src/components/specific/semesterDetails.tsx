@@ -2,7 +2,7 @@ import type SemesterData from "@/models/semester";
 import { Button } from "../ui/button";
 import { FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { format, type Locale } from "date-fns";
+import { format } from "date-fns";
 import Module from "./module";
 import {
   AlertDialog,
@@ -26,19 +26,19 @@ import { useEffect, useState } from "react";
 import type ModuleData from "@/models/module";
 import ModuleDialog from "./moduleDialog";
 import { Skeleton } from "../ui/skeleton";
+import { useDateLocale } from "@/hooks/use-dateLocale";
 
 interface SemesterDetailsProps {
   semester: SemesterData;
-  locale: Locale;
   onUpdate: (newSemester: SemesterData) => void;
 }
 
 export default function SemesterDetails({
   semester,
-  locale,
   onUpdate,
 }: SemesterDetailsProps) {
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
 
   const saveEdits = async (name: string, startDate: Date, endDate: Date) => {
     let data = await editSemester(semester.id, name, startDate, endDate);
@@ -71,15 +71,14 @@ export default function SemesterDetails({
           <div className="font-medium text-xl ">{semester.name}</div>
           <div className="text-muted-foreground text-sm">
             {t("semesters.duration", {
-              start: format(semester.startDate, "PPP", { locale: locale }),
-              end: format(semester.endDate, "PPP", { locale: locale }),
+              start: format(semester.startDate, "PPP", { locale: dateLocale }),
+              end: format(semester.endDate, "PPP", { locale: dateLocale }),
             })}
           </div>
         </div>
         <div className="flex items-center pb-5">
           <SemesterDialog
             mode="edit"
-            locale={locale}
             initialData={semester}
             onSave={saveEdits}
           >

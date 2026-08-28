@@ -14,15 +14,15 @@ import { Field, FieldGroup, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { format, type Locale } from "date-fns";
+import { format } from "date-fns";
 import { Calendar } from "../ui/calendar";
 import { useEffect, useState } from "react";
 import { getErrorStatus } from "@/lib/errors";
 import type SemesterData from "@/models/semester";
 import { Spinner } from "../ui/spinner";
+import { useDateLocale } from "@/hooks/use-dateLocale";
 
 interface SemesterDialogProps {
-  locale: Locale;
   onSave: (name: string, startDate: Date, endDate: Date) => Promise<void>;
   onCompleted?: CallableFunction;
   initialData?: SemesterData | null;
@@ -31,7 +31,6 @@ interface SemesterDialogProps {
 }
 
 export default function SemesterDialog({
-  locale,
   onSave,
   onCompleted,
   initialData,
@@ -39,6 +38,7 @@ export default function SemesterDialog({
   children,
 }: SemesterDialogProps) {
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
 
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -175,7 +175,7 @@ export default function SemesterDialog({
                   className="w-53 justify-between text-left font-normal data-[empty=true]:text-muted-foreground"
                 >
                   {startDate ? (
-                    format(startDate, "PPP", { locale: locale })
+                    format(startDate, "PPP", { locale: dateLocale })
                   ) : (
                     <span>{t("semesters.newDialog.pickDate")}</span>
                   )}
@@ -192,7 +192,7 @@ export default function SemesterDialog({
                     return setStartDate(date);
                   }}
                   defaultMonth={startDate}
-                  locale={locale}
+                  locale={dateLocale}
                 />
               </PopoverContent>
             </Popover>
@@ -208,7 +208,7 @@ export default function SemesterDialog({
                   className="w-53 justify-between text-left font-normal data-[empty=true]:text-muted-foreground"
                 >
                   {endDate ? (
-                    format(endDate, "PPP", { locale: locale })
+                    format(endDate, "PPP", { locale: dateLocale })
                   ) : (
                     <span>{t("semesters.newDialog.pickDate")}</span>
                   )}
@@ -225,7 +225,7 @@ export default function SemesterDialog({
                     return setEndDate(date);
                   }}
                   defaultMonth={endDate}
-                  locale={locale}
+                  locale={dateLocale}
                 />
               </PopoverContent>
             </Popover>

@@ -11,6 +11,48 @@
       "5": "Friday",
       "6": "Saturday",
       "7": "Sunday"
+    },
+    "eventTypes": {
+      "0": "Other",
+      "1": "Deadline",
+      "2": "Written Exam",
+      "3": "Oral Exam",
+      "4": "Presentation",
+      "5": "Milestone",
+      "6": "Meeting"
+    },
+    "eventList": {
+      "emptyState": "No events found",
+      "emptyStateAction": "Create an event now"
+    },
+    "eventDialog": {
+      "createTitle": "Create new event",
+      "editTitle": "Edit the event",
+      "invalidTimerangeMessage": "Start cannot be after end",
+      "fields": {
+        "title": "Event title",
+        "titlePlaceholder": "E.g., Meeting with Tom W.",
+        "description": "Description",
+        "descriptionPlaceholder": "Any other details you want to remember",
+        "start": "Start",
+        "end": "End",
+        "type": "Type of the event"
+      },
+      "dateTimePicker": {
+        "placeholder": "Pick a date"
+      },
+      "actions": {
+        "create": "Create",
+        "cancel": "Cancel",
+        "save": "Save",
+        "edit": "Edit"
+      }
+    },
+    "eventDelete": {
+      "title": "Delete event?",
+      "content": "Are you sure you want to delete the following event? This action cannot be undone",
+      "actionCancel": "Keep event",
+      "actionDelete": "Delete permanently"
     }
   },
   "preauth": {

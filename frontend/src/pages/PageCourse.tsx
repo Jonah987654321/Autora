@@ -4,6 +4,9 @@ import {
   getSemesterByID,
   setWeeklySchedule,
 } from "@/api/academic";
+import { getUpcomingEventsForModule } from "@/api/calendar";
+import EventDialog from "@/components/specific/calendar/util/eventDialog";
+import EventList from "@/components/specific/calendar/displays/eventList";
 import ModuleDialog from "@/components/specific/moduleDialog";
 import SemesterTransfer from "@/components/specific/modules/semesterTransfer";
 import WeeklyScheduleDialog from "@/components/specific/modules/weeklyScheduleDialog";
@@ -35,6 +38,8 @@ import {
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, useParams } from "react-router";
+import { format } from "date-fns";
+import { useDateLocale } from "@/hooks/use-dateLocale";
 
 interface courseMetatagProps {
   content: string;
@@ -51,6 +56,7 @@ function CourseMetatag({ content }: courseMetatagProps) {
 export default function PageCourse() {
   const { courseId } = useParams();
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
 
   const [noCourseError, setNoCourseError] = useState(false);
   const [serverError, setServerError] = useState(false);
@@ -58,6 +64,8 @@ export default function PageCourse() {
 
   const [moduleData, setModuleData] = useState<ModuleData | undefined>();
   const [semesterData, setSemesterData] = useState<SemesterData | undefined>();
+
+  const [eventRefreshTrigger, setEventRefreshTrigger] = useState(0);
 
   const fetchCourse = async () => {
     if (courseId === undefined) {
@@ -158,10 +166,11 @@ export default function PageCourse() {
                   {moduleData !== undefined ? (
                     <>
                       <CourseMetatag
-                        content={`${t("course.status")}: ${moduleData.grade !== undefined
-                          ? `${t("course.statusCompleted")} (${moduleData.grade})`
-                          : t("course.statusInProgress")
-                          }`}
+                        content={`${t("course.status")}: ${
+                          moduleData.grade !== undefined
+                            ? `${t("course.statusCompleted")} (${moduleData.grade})`
+                            : t("course.statusInProgress")
+                        }`}
                       />
                       {moduleData.ects !== undefined ? (
                         <CourseMetatag
@@ -255,8 +264,8 @@ export default function PageCourse() {
                 )}
               </div>
             </div>
-            <div className="h-full grid grid-cols-3 gap-x-6 mt-4">
-              <div className="flex flex-col gap-y-4">
+            <div className="flex-1 min-h-0 grid grid-cols-3 gap-x-6 mt-4">
+              <div className="flex flex-col gap-y-4 min-h-0">
                 <div>
                   <Card className="rounded-xl">
                     <CardActionHeader
@@ -282,7 +291,7 @@ export default function PageCourse() {
                   </Card>
                 </div>
               </div>
-              <div className="flex flex-col gap-y-4">
+              <div className="flex flex-col gap-y-4 min-h-0">
                 <div>
                   <Card className="rounded-xl">
                     <CardActionHeader
@@ -308,7 +317,7 @@ export default function PageCourse() {
                   </Card>
                 </div>
               </div>
-              <div className="flex flex-col gap-y-4">
+              <div className="flex flex-col gap-y-4 min-h-0">
                 <div>
                   <Card className="rounded-xl">
                     <CardActionHeader
@@ -336,17 +345,9 @@ export default function PageCourse() {
                     <CardContent>
                       {!mainModuleDataLoading && moduleData !== undefined ? (
                         moduleData.weeklySchedule !== undefined &&
-                          moduleData.weeklySchedule.length > 0 ? (
+                        moduleData.weeklySchedule.length > 0 ? (
                           <div className="flex flex-col">
-                            {(() => {
-                              const timeFormatter = new Intl.DateTimeFormat(
-                                undefined,
-                                {
-                                  timeStyle: "short",
-                                },
-                              );
-
-                              return moduleData.weeklySchedule.map(
+                            {moduleData.weeklySchedule.map(
                                 (e, index) => {
                                   const startDate = new Date();
                                   startDate.setHours(
@@ -390,14 +391,13 @@ export default function PageCourse() {
                                         </>
                                       )}
                                       <div className="text-xs font-medium whitespace-nowrap">
-                                        {timeFormatter.format(startDate)} -{" "}
-                                        {timeFormatter.format(endDate)}
+                                        {format(startDate, "p", {locale: dateLocale})} -{" "}
+                                        {format(endDate, "p", {locale: dateLocale})}
                                       </div>
                                     </div>
                                   );
                                 },
-                              );
-                            })()}
+                              )}
                           </div>
                         ) : (
                           <div className="flex flex-col items-center justify-center text-muted-foreground mb-4 space-y-1">
@@ -419,16 +419,29 @@ export default function PageCourse() {
                     </CardContent>
                   </Card>
                 </div>
-                <div className="flex-1">
-                  <Card className="h-full rounded-xl">
+                <div className="flex-1 min-h-0">
+                  <Card className="h-full flex flex-col rounded-xl">
                     <CardActionHeader
                       title={t("course.cards.events")}
                       action={
-                        <Button size="icon-lg" variant="outline">
-                          <CalendarPlus />
-                        </Button>
+                        <EventDialog createEventsInModule={courseId} onRefreshRequired={() => setEventRefreshTrigger((prev) => prev+1)}>
+                          <Button size="icon-lg" variant="outline">
+                            <CalendarPlus />
+                          </Button>
+                        </EventDialog>
                       }
                     ></CardActionHeader>
+                    <CardContent className="flex-1 min-h-0 p-0">
+                      <EventList
+                        createEventsInModule={courseId}
+                        doFetchEvents={async () => {
+                          return courseId === undefined
+                            ? []
+                            : await getUpcomingEventsForModule(courseId);
+                        }}
+                        refreshTrigger={eventRefreshTrigger}
+                      />
+                    </CardContent>
                   </Card>
                 </div>
               </div>

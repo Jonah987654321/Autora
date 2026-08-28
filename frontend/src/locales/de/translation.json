@@ -11,6 +11,48 @@
       "5": "Freitag",
       "6": "Samstag",
       "7": "Sonntag"
+    },
+    "eventDelete": {
+      "actionCancel": "Termin behalten",
+      "actionDelete": "Dauerhaft löschen",
+      "content": "Bist du sicher, dass du den folgenden Termin löschen willst? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "title": "Termin löschen?"
+    },
+    "eventDialog": {
+      "actions": {
+        "cancel": "Abbrechen",
+        "create": "Jetzt erstellen",
+        "edit": "Bearbeiten",
+        "save": "Speichern"
+      },
+      "createTitle": "Neuen Termin anlegen",
+      "dateTimePicker": {
+        "placeholder": "Wähle ein Datum"
+      },
+      "editTitle": "Termin bearbeiten",
+      "fields": {
+        "description": "Beschreibung",
+        "descriptionPlaceholder": "Zusätzliche Infos die du dir merken möchtest",
+        "end": "Ende",
+        "start": "Anfang",
+        "title": "Titel",
+        "titlePlaceholder": "Z.B. Mocha mit Steve trinken",
+        "type": "Art des Termins"
+      },
+      "invalidTimerangeMessage": "Der Anfang kann nicht nach dem Ende liegen"
+    },
+    "eventList": {
+      "emptyState": "Keine Termine gefunden",
+      "emptyStateAction": "Erstelle einen neuen Termin"
+    },
+    "eventTypes": {
+      "0": "Sonstiges",
+      "1": "Frist",
+      "2": "Klausur",
+      "3": "Mündliche Prüfung",
+      "4": "Präsentation",
+      "5": "Meilenstein",
+      "6": "Meeting"
     }
   },
   "preauth": {

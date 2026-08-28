@@ -12,7 +12,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import type SemesterData from "@/models/semester";
 import axios from "axios";
-import { de, enUS } from "date-fns/locale";
 import {
   CircleX,
   GraduationCap,
@@ -24,9 +23,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function PageSemester() {
-  const { t, i18n } = useTranslation();
-
-  const currentLocale = i18n.language.startsWith("de") ? de : enUS;
+  const { t } = useTranslation();
 
   const [semestersLoading, setSemestersLoading] = useState(true);
   const [semesters, setSemesters] = useState<SemesterData[]>([]);
@@ -78,7 +75,6 @@ export default function PageSemester() {
         </div>
         <div>
           <SemesterDialog
-            locale={currentLocale}
             onSave={createSemester}
             onCompleted={fetchSemesters}
             mode="create"
@@ -132,7 +128,6 @@ export default function PageSemester() {
         </div>
         <div>
           <SemesterDialog
-            locale={currentLocale}
             onSave={createSemester}
             onCompleted={fetchSemesters}
             mode="create"
@@ -163,7 +158,6 @@ export default function PageSemester() {
                       isActive={selectedSemester !== null && selectedSemester.id == s.id}
                       onClick={(_) => setSelectedSemester(s)}
                       key={s.id}
-                      locale={currentLocale}
                       semesterName={s.name}
                       start={new Date(s.startDate)}
                       end={new Date(s.endDate)}
@@ -193,7 +187,6 @@ export default function PageSemester() {
           {selectedSemester && (
             <SemesterDetails
               semester={selectedSemester}
-              locale={currentLocale}
               onUpdate={(newSemester: SemesterData) => {
                 fetchSemesters();
                 setSelectedSemester(newSemester);

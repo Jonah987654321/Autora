@@ -43,6 +43,7 @@ function DialogOverlay({
         className
       )}
       {...props}
+      onContextMenu={(e) => e.stopPropagation()}
     />
   )
 }
@@ -65,6 +66,7 @@ function DialogContent({
           className
         )}
         {...props}
+        onContextMenu={(e) => e.stopPropagation()}
       >
         {children}
         {showCloseButton && (
