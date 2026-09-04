@@ -1,6 +1,7 @@
 package academic
 
 import (
+	"autora-backend/jsbontime"
 	"autora-backend/mw"
 	"autora-backend/token"
 	"context"
@@ -24,9 +25,9 @@ type SemesterHandler struct {
 
 // --- Handling for creating semesters
 type CreateSemesterRequest struct {
-	Name      string    `json:"name"`
-	StartDate JBsonTime `json:"startDate"`
-	EndDate   JBsonTime `json:"endDate"`
+	Name      string              `json:"name"`
+	StartDate jsbontime.JBsonTime `json:"startDate"`
+	EndDate   jsbontime.JBsonTime `json:"endDate"`
 }
 type CreateSemesterHandler struct {
 	SemesterHandler
@@ -171,9 +172,9 @@ func NewGetSemesterByIDHandler(authMiddleware mw.Middleware, actions SemesterAct
 
 // --- Edit a semester
 type EditSemesterRequest struct {
-	Name      string    `json:"name"`
-	StartDate JBsonTime `json:"startDate"`
-	EndDate   JBsonTime `json:"endDate"`
+	Name      string              `json:"name"`
+	StartDate jsbontime.JBsonTime `json:"startDate"`
+	EndDate   jsbontime.JBsonTime `json:"endDate"`
 }
 type EditSemesterHandler struct {
 	SemesterHandler

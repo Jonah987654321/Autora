@@ -1,4 +1,4 @@
-package academic
+package jsbontime
 
 import (
 	"fmt"

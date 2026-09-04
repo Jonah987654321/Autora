@@ -1,6 +1,7 @@
 package academic
 
 import (
+	"autora-backend/jsbontime"
 	"context"
 	"errors"
 	"fmt"
@@ -12,11 +13,11 @@ import (
 )
 
 type Semester struct {
-	ID        bson.ObjectID `bson:"_id,omitempty" json:"id"`
-	UserID    bson.ObjectID `bson:"userID" json:"-"`
-	Name      string        `bson:"name" json:"name"`
-	StartDate JBsonTime     `bson:"startDate" json:"startDate"`
-	EndDate   JBsonTime     `bson:"endDate" json:"endDate"`
+	ID        bson.ObjectID       `bson:"_id,omitempty" json:"id"`
+	UserID    bson.ObjectID       `bson:"userID" json:"-"`
+	Name      string              `bson:"name" json:"name"`
+	StartDate jsbontime.JBsonTime `bson:"startDate" json:"startDate"`
+	EndDate   jsbontime.JBsonTime `bson:"endDate" json:"endDate"`
 }
 
 type MongoSemesterActions struct {
