@@ -6,6 +6,7 @@ import (
 	"autora-backend/calendar"
 	"autora-backend/database"
 	"autora-backend/mw"
+	"autora-backend/productivity"
 	"autora-backend/token"
 	"net/http"
 )
@@ -60,6 +61,17 @@ func CreateRouter(collections database.AllCollections, jwtService *token.JWTServ
 	router.Handle("PUT /calendar/events/{id}", calendar.NewUpdateEventHandler(authMW, eventDB))
 	router.Handle("DELETE /calendar/events/{id}", calendar.NewDeleteEventHandler(authMW, eventDB))
 	router.Handle("GET /calendar/modules/{id}/upcoming", calendar.NewModuleUpcomingEventHandler(authMW, eventDB))
+
+	// --- Task related routes
+	taskDB := &productivity.MongoTaskActions{
+		CollectionTasks:     collections.Tasks,
+		CollectionModules:   collections.Modules,
+		CollectionSemesters: collections.Semesters,
+	}
+	router.Handle("POST /productivity/tasks", productivity.NewCreateTaskHandler(authMW, taskDB))
+	router.Handle("PUT /productivity/tasks/{id}", productivity.NewUpdateTaskHandler(authMW, taskDB))
+	router.Handle("DELETE /productivity/tasks/{id}", productivity.NewDeleteTaskHandler(authMW, taskDB))
+	router.Handle("GET /productivity/tasks/modules/{id}/open", productivity.NewGetOpenTaskForModuleHandler(authMW, taskDB))
 
 	return router
 }
