@@ -34,7 +34,9 @@ func (h *CreateTaskHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	task, err := h.actions.CreateTask(ctx, token.GetUserIDFromContext(ctx), data)
 	if err != nil {
 		if errors.Is(err, ErrValidationFailed) {
-			mw.SetErrorAsJSON(w, err.Error(), http.StatusBadRequest)
+			var pubErr *PublicError
+			errors.As(err, &pubErr)
+			mw.SetErrorAsJSON(w, pubErr.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -83,7 +85,9 @@ func (h *UpdateTaskHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	updated, err := h.actions.UpdateTask(ctx, taskID, token.GetUserIDFromContext(ctx), data)
 	if err != nil {
 		if errors.Is(err, ErrValidationFailed) {
-			mw.SetErrorAsJSON(w, err.Error(), http.StatusBadRequest)
+			var pubErr *PublicError
+			errors.As(err, &pubErr)
+			mw.SetErrorAsJSON(w, pubErr.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -98,7 +102,9 @@ func (h *UpdateTaskHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if errors.Is(err, ErrBadOperation) {
-			mw.SetErrorAsJSON(w, err.Error(), http.StatusBadRequest)
+			var pubErr *PublicError
+			errors.As(err, &pubErr)
+			mw.SetErrorAsJSON(w, pubErr.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -146,7 +152,9 @@ func (h *DeleteTaskHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if errors.Is(err, ErrBadOperation) {
-			mw.SetErrorAsJSON(w, err.Error(), http.StatusBadRequest)
+			var pubErr *PublicError
+			errors.As(err, &pubErr)
+			mw.SetErrorAsJSON(w, pubErr.Error(), http.StatusBadRequest)
 			return
 		}
 
