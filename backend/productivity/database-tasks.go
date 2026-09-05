@@ -17,25 +17,35 @@ const (
 )
 
 var (
-	ErrNoSuchModule          = errors.New("tasks: no matching module found")
-	ErrNoSuchTask            = errors.New("tasks: no matching task found")
-	ErrTaskTitleEmpty        = errors.New("tasks: title cannot be empty")
-	ErrInvalidRepeatDays     = errors.New("tasks: repeatDays must be larger than 0")
-	ErrSeriesWithoutDueDate  = errors.New("tasks: series templates need a due date")
-	ErrSeriesWithoutModule   = errors.New("tasks: series cannot be created without module")
-	ErrInvalidParentTask     = errors.New("tasks: given parent task is not valid")
-	ErrNotWithinSemester     = errors.New("tasks: dueDate is outside the semester")
-	ErrTemplateEdit          = errors.New("tasks: a template cannot be edited directly")
-	ErrParentChildConversion = errors.New("tasks: child/parent conversion not possible")
-	ErrParentChildDueDate    = errors.New("tasks: child due date cannot be after parent due date")
-	ErrMongoSessionNeeded    = errors.New("tasks: this function needs a mongo session")
-	ErrInvalidUpdateSeries   = errors.New("tasks: updateCompleteSeries has an invalid value for the task being updated")
-	ErrNegativeEstMinutes    = errors.New("tasks: estimated minutes cannot be negative")
-	ErrInvalidStatus         = errors.New("tasks: status must be a valid status")
-	ErrTitleToLong           = fmt.Errorf("tasks: title must not be longer than %v characters", MAXLEN_Title)
-	ErrDescriptionToLong     = fmt.Errorf("tasks: description must not be longer than %v characters", MAXLEN_Description)
-	ErrTemplateDelete        = errors.New("tasks: delete cannot be called for a template directly")
-	ErrDeletedShadowModify   = errors.New("tasks: cannot modify a deleted shadow")
+	ErrNotFound         = errors.New("tasks: not found")
+	ErrValidationFailed = errors.New("tasks: validation failed")
+	ErrBadOperation     = errors.New("tasks: bad operation")
+)
+
+var (
+	// Not-found errors
+	ErrNoSuchModule = fmt.Errorf("%w: module", ErrNotFound)
+	ErrNoSuchTask   = fmt.Errorf("%w: task", ErrNotFound)
+
+	// Validation errors
+	ErrTaskTitleEmpty       = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("title cannot be empty"))
+	ErrInvalidRepeatDays    = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("repeatDays must be larger than 0"))
+	ErrSeriesWithoutDueDate = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("series templates need a due date"))
+	ErrSeriesWithoutModule  = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("series cannot be created without module"))
+	ErrInvalidParentTask    = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("given parent task is not valid"))
+	ErrNotWithinSemester    = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("dueDate is outside the semester"))
+	ErrParentChildDueDate   = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("child due date cannot be after parent due date"))
+	ErrMongoSessionNeeded   = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("this function needs a mongo session"))
+	ErrNegativeEstMinutes   = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("estimated minutes cannot be negative"))
+	ErrInvalidStatus        = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("status must be a valid status"))
+	ErrTitleToLong          = fmt.Errorf("%w: title must not be longer than %v characters", ErrValidationFailed, MAXLEN_Title)
+	ErrDescriptionToLong    = fmt.Errorf("%w: description must not be longer than %v characters", ErrValidationFailed, MAXLEN_Description)
+
+	// Wrong-operation errors
+	ErrTemplateEdit        = fmt.Errorf("%w: %w", ErrBadOperation, errors.New("a template cannot be edited directly"))
+	ErrInvalidUpdateSeries = fmt.Errorf("%w: %w", ErrBadOperation, errors.New("updateCompleteSeries has an invalid value for the task being updated"))
+	ErrTemplateDelete      = fmt.Errorf("%w: %w", ErrBadOperation, errors.New("delete cannot be called for a template directly"))
+	ErrDeletedShadowModify = fmt.Errorf("%w: %w", ErrBadOperation, errors.New("cannot modify a deleted shadow"))
 )
 
 type Task struct {
@@ -704,7 +714,7 @@ func (a *MongoTaskActions) UpdateTask(ctx context.Context, taskID, userID string
 	}
 	taskObjectID, err := bson.ObjectIDFromHex(taskID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert taskID to ObjectID: %w", err)
+		return nil, ErrNoSuchTask
 	}
 
 	pre, err := a.fetchTask(ctx, taskObjectID, userObjectId)
@@ -854,7 +864,7 @@ func (a *MongoTaskActions) DeleteTask(ctx context.Context, taskID, userID string
 	}
 	taskObjectID, err := bson.ObjectIDFromHex(taskID)
 	if err != nil {
-		return fmt.Errorf("failed to convert taskID to ObjectID: %w", err)
+		return ErrNoSuchTask
 	}
 
 	task, err := a.fetchTask(ctx, taskObjectID, userObjectId)
@@ -977,4 +987,48 @@ func (a *MongoTaskActions) DeleteTask(ctx context.Context, taskID, userID string
 	})
 
 	return err
+}
+
+func (a *MongoTaskActions) GetOpenTaskForModule(ctx context.Context, moduleID, userID string) ([]Task, error) {
+	// Parse IDs to ObjectIDs
+	userObjectId, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert userID to ObjectID: %w", err)
+	}
+	moduleObjectID, err := bson.ObjectIDFromHex(moduleID)
+	if err != nil {
+		return nil, ErrNoSuchModule
+	}
+
+	dbCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	defer cancel()
+
+	count, err := a.CollectionModules.CountDocuments(dbCtx, bson.M{"_id": moduleObjectID, "userID": userObjectId})
+	if err != nil {
+		return nil, fmt.Errorf("failed to check if module exists: %w", err)
+	}
+	if count != 1 {
+		return nil, ErrNoSuchModule
+	}
+
+	filter := bson.M{
+		"moduleID":        moduleObjectID,
+		"userID":          userObjectId,
+		"status":          bson.M{"$ne": StatusDone},
+		"isDeletedShadow": false,
+		"isTemplate":      false,
+		"parentTask":      nil,
+	}
+
+	tasks := []Task{}
+	res, err := a.CollectionTasks.Find(dbCtx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch tasks: %w", err)
+	}
+	err = res.All(dbCtx, &tasks)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode tasks: %w", err)
+	}
+
+	return tasks, nil
 }
