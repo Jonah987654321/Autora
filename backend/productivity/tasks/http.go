@@ -1,4 +1,4 @@
-package productivity
+package tasks
 
 import (
 	"autora-backend/mw"
@@ -8,7 +8,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"time"
 )
 
 type TaskActions interface {
@@ -16,39 +15,6 @@ type TaskActions interface {
 	UpdateTask(ctx context.Context, taskID, userID string, req TaskUpdateRequest) (*Task, error)
 	DeleteTask(ctx context.Context, taskID, userID string, req TaskDeleteRequest) error
 	GetOpenTaskForModule(ctx context.Context, moduleID, userID string) ([]Task, error)
-}
-
-type TaskRequest struct {
-	ModuleID         string     `json:"moduleID,omitempty"`
-	Title            string     `json:"title"`
-	Description      string     `json:"description"`
-	DueDate          *time.Time `json:"dueDate,omitempty"`
-	EstimatedMinutes int        `json:"estimatedMinutes"`
-	Status           TaskStatus `json:"status"`
-	ParentTask       string     `json:"parentTask,omitempty"`
-	IsTemplate       bool       `json:"isTemplate"`
-	SeriesID         string     `json:"seriesID,omitempty"`
-	RepeatDays       int        `json:"repeatDays,omitempty"`
-}
-
-const (
-	BEHAVIOR_SeriesUpdate_None     = 0
-	BEHAVIOR_SeriesUpdate_Upcoming = 1
-	BEHAVIOR_SeriesUpdate_All      = 2
-)
-
-type TaskModificationRequest struct {
-	UpdateCompleteSeries int  `json:"updateCompleteSeries"`
-	OverwriteModified    bool `json:"overwriteModified"`
-}
-
-type TaskUpdateRequest struct {
-	TaskRequest
-	TaskModificationRequest
-}
-
-type TaskDeleteRequest struct {
-	TaskModificationRequest
 }
 
 // --- Handle creating tasks

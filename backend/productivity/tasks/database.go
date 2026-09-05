@@ -1,4 +1,4 @@
-package productivity
+package tasks
 
 import (
 	"autora-backend/jsbontime"
@@ -11,79 +11,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-const (
-	MAXLEN_Title       = 255
-	MAXLEN_Description = 5000
-)
-
-var (
-	ErrNotFound         = errors.New("tasks: not found")
-	ErrValidationFailed = errors.New("tasks: validation failed")
-	ErrBadOperation     = errors.New("tasks: bad operation")
-)
-
-var (
-	// Not-found errors
-	ErrNoSuchModule = fmt.Errorf("%w: module", ErrNotFound)
-	ErrNoSuchTask   = fmt.Errorf("%w: task", ErrNotFound)
-
-	// Validation errors
-	ErrTaskTitleEmpty       = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("title cannot be empty"))
-	ErrInvalidRepeatDays    = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("repeatDays must be larger than 0"))
-	ErrSeriesWithoutDueDate = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("series templates need a due date"))
-	ErrSeriesWithoutModule  = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("series cannot be created without module"))
-	ErrInvalidParentTask    = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("given parent task is not valid"))
-	ErrNotWithinSemester    = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("dueDate is outside the semester"))
-	ErrParentChildDueDate   = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("child due date cannot be after parent due date"))
-	ErrMongoSessionNeeded   = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("this function needs a mongo session"))
-	ErrNegativeEstMinutes   = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("estimated minutes cannot be negative"))
-	ErrInvalidStatus        = fmt.Errorf("%w: %w", ErrValidationFailed, errors.New("status must be a valid status"))
-	ErrTitleToLong          = fmt.Errorf("%w: title must not be longer than %v characters", ErrValidationFailed, MAXLEN_Title)
-	ErrDescriptionToLong    = fmt.Errorf("%w: description must not be longer than %v characters", ErrValidationFailed, MAXLEN_Description)
-
-	// Wrong-operation errors
-	ErrTemplateEdit        = fmt.Errorf("%w: %w", ErrBadOperation, errors.New("a template cannot be edited directly"))
-	ErrInvalidUpdateSeries = fmt.Errorf("%w: %w", ErrBadOperation, errors.New("updateCompleteSeries has an invalid value for the task being updated"))
-	ErrTemplateDelete      = fmt.Errorf("%w: %w", ErrBadOperation, errors.New("delete cannot be called for a template directly"))
-	ErrDeletedShadowModify = fmt.Errorf("%w: %w", ErrBadOperation, errors.New("cannot modify a deleted shadow"))
-)
-
-type Task struct {
-	ID               bson.ObjectID  `bson:"_id,omitempty" json:"id"`
-	UserID           bson.ObjectID  `bson:"userID" json:"-"`
-	ModuleID         *bson.ObjectID `bson:"moduleID,omitempty" json:"moduleID,omitempty"`
-	Title            string         `bson:"title" json:"title"`
-	Description      string         `bson:"description" json:"description"`
-	DueDate          *time.Time     `bson:"dueDate,omitempty" json:"dueDate,omitempty"`
-	EstimatedMinutes int            `bson:"estimatedMinutes" json:"estimatedMinutes"`
-	Status           TaskStatus     `bson:"status" json:"status"`
-	IsParent         bool           `bson:"isParent" json:"isParent"`
-	ParentTask       *bson.ObjectID `bson:"parentTask,omitempty" json:"parentTask,omitempty"`
-	IsTemplate       bool           `bson:"isTemplate" json:"isTemplate"`
-	SeriesID         *bson.ObjectID `bson:"seriesID,omitempty" json:"seriesID,omitempty"`
-	RepeatDays       int            `bson:"repeatDays,omitempty" json:"repeatDays,omitempty"`
-	SeriesShadowID   int            `bson:"shadowID" json:"-"`
-	IsDeletedShadow  bool           `bson:"isDeletedShadow" json:"-"`
-	IsModifiedShadow bool           `bson:"isModifiedShadow" json:"-"`
-}
-
-type ValidatedTaskRequest struct {
-	ModuleID         *bson.ObjectID
-	Title            string
-	Description      string
-	DueDate          *time.Time
-	EstimatedMinutes int
-	Status           TaskStatus
-	IsParent         bool
-	ParentTask       *bson.ObjectID
-	IsTemplate       bool
-	SeriesID         *bson.ObjectID
-	RepeatDays       int
-	SeriesShadowID   int
-	IsDeletedShadow  bool
-	IsModifiedShadow bool
-}
-
 type ModuleSemesterID struct {
 	SemesterID bson.ObjectID `bson:"semesterID"`
 }
@@ -92,15 +19,6 @@ type SemesterTimeframe struct {
 	StartDate jsbontime.JBsonTime `bson:"startDate"`
 	EndDate   jsbontime.JBsonTime `bson:"endDate"`
 }
-
-// --- Type for wrapping the status
-type TaskStatus int
-
-const (
-	StatusOpen TaskStatus = iota
-	StatusInProgress
-	StatusDone
-)
 
 // --- Struct providing all task-related actions on the database
 type MongoTaskActions struct {
