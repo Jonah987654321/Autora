@@ -54,7 +54,6 @@ type TaskRequest struct {
 	Status           TaskStatus `json:"status"`
 	ParentTask       string     `json:"parentTask,omitempty"`
 	IsTemplate       bool       `json:"isTemplate"`
-	SeriesID         string     `json:"seriesID,omitempty"`
 	RepeatDays       int        `json:"repeatDays,omitempty"`
 }
 
@@ -65,9 +64,5 @@ type TaskModificationRequest struct {
 
 type TaskUpdateRequest struct {
 	TaskRequest
-	TaskModificationRequest
-}
-
-type TaskDeleteRequest struct {
 	TaskModificationRequest
 }

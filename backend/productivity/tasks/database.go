@@ -111,7 +111,7 @@ func (a *MongoTaskActions) validateTaskRequest(ctx context.Context, req TaskRequ
 		}
 		moduleObjectID = &parsedID
 	}
-	// Validate the moduleID angainst database
+	// Validate the moduleID against database
 	// The retrieved semesterID is also used to extract semester start & end to validate dueDate
 	var moduleFromSemester ModuleSemesterID
 	if moduleObjectID != nil {
@@ -742,7 +742,7 @@ func (a *MongoTaskActions) UpdateTask(ctx context.Context, taskID, userID string
 	return res.(*Task), nil
 }
 
-func (a *MongoTaskActions) deleteTemplateHandleShadows(ctx context.Context, taskID, userID bson.ObjectID, req TaskDeleteRequest, shadowID int) error {
+func (a *MongoTaskActions) deleteTemplateHandleShadows(ctx context.Context, taskID, userID bson.ObjectID, seriesUpdate int, overwriteModified bool, shadowID int) error {
 	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -755,15 +755,18 @@ func (a *MongoTaskActions) deleteTemplateHandleShadows(ctx context.Context, task
 	// --- Handle shadows
 	// Delete all that need to be deleted (based on the behavior given in the request)
 	filter := bson.M{"seriesID": taskID, "userID": userID}
-	if req.UpdateCompleteSeries == BEHAVIOR_SeriesUpdate_Upcoming {
+	if seriesUpdate == BEHAVIOR_SeriesUpdate_Upcoming {
 		filter["shadowID"] = bson.M{"$gte": shadowID}
+	}
+	if !overwriteModified {
+		filter["isModifiedShadow"] = false
 	}
 	_, err = a.CollectionTasks.DeleteMany(dbCtx, filter)
 	if err != nil {
 		return fmt.Errorf("failed to delete shadows of main template: %w", err)
 	}
 	// If only upcoming were deleted, remove the seriesID from the earlier to make them independent
-	if req.UpdateCompleteSeries == BEHAVIOR_SeriesUpdate_Upcoming {
+	if seriesUpdate == BEHAVIOR_SeriesUpdate_Upcoming || !overwriteModified {
 		update := bson.M{"$unset": bson.M{"seriesID": "", "shadowID": ""}}
 		filter := bson.M{"seriesID": taskID, "userID": userID}
 		_, err = a.CollectionTasks.UpdateMany(dbCtx, filter, update)
@@ -774,7 +777,7 @@ func (a *MongoTaskActions) deleteTemplateHandleShadows(ctx context.Context, task
 	return nil
 }
 
-func (a *MongoTaskActions) DeleteTask(ctx context.Context, taskID, userID string, req TaskDeleteRequest) error {
+func (a *MongoTaskActions) DeleteTask(ctx context.Context, taskID, userID string, seriesUpdate int, overwriteModified bool) error {
 	// Parse IDs to ObjectIDs
 	userObjectId, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
@@ -803,13 +806,13 @@ func (a *MongoTaskActions) DeleteTask(ctx context.Context, taskID, userID string
 		defer cancel()
 
 		// Check if task belongs to a series and request indicates to update whole series
-		if task.SeriesID != nil && req.UpdateCompleteSeries != BEHAVIOR_SeriesUpdate_None {
+		if task.SeriesID != nil && seriesUpdate != BEHAVIOR_SeriesUpdate_None {
 			seriesTemplate, err := a.fetchTask(sessCtx, *task.SeriesID, userObjectId)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get series template: %w", err)
 			}
 
-			err = a.deleteTemplateHandleShadows(sessCtx, seriesTemplate.ID, userObjectId, req, task.SeriesShadowID)
+			err = a.deleteTemplateHandleShadows(sessCtx, seriesTemplate.ID, userObjectId, seriesUpdate, overwriteModified, task.SeriesShadowID)
 			if err != nil {
 				return nil, fmt.Errorf("failed to handle template delete: %w", err)
 			}
@@ -826,7 +829,7 @@ func (a *MongoTaskActions) DeleteTask(ctx context.Context, taskID, userID string
 				}
 
 				for _, childTemplate := range childTemplateTask {
-					err = a.deleteTemplateHandleShadows(sessCtx, childTemplate.ID, userObjectId, req, task.SeriesShadowID)
+					err = a.deleteTemplateHandleShadows(sessCtx, childTemplate.ID, userObjectId, seriesUpdate, overwriteModified, task.SeriesShadowID)
 					if err != nil {
 						return nil, fmt.Errorf("failed to handle child template delete: %w", err)
 					}
@@ -836,7 +839,7 @@ func (a *MongoTaskActions) DeleteTask(ctx context.Context, taskID, userID string
 				if err != nil {
 					return nil, fmt.Errorf("failed to update parent attributes: %w", err)
 				}
-				err = a.forceGenerateTaskSeries(sessCtx, *seriesTemplate.ParentTask, userObjectId, nil, req.UpdateCompleteSeries, task.SeriesShadowID, req.OverwriteModified)
+				err = a.forceGenerateTaskSeries(sessCtx, *seriesTemplate.ParentTask, userObjectId, nil, seriesUpdate, task.SeriesShadowID, overwriteModified)
 				if err != nil {
 					return nil, fmt.Errorf("failed to regenerate task series: %w", err)
 				}

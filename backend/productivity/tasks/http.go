@@ -8,12 +8,13 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 )
 
 type TaskActions interface {
 	CreateTask(ctx context.Context, userID string, req TaskRequest) (*Task, error)
 	UpdateTask(ctx context.Context, taskID, userID string, req TaskUpdateRequest) (*Task, error)
-	DeleteTask(ctx context.Context, taskID, userID string, req TaskDeleteRequest) error
+	DeleteTask(ctx context.Context, taskID, userID string, seriesUpdate int, overwriteModified bool) error
 	GetOpenTaskForModule(ctx context.Context, moduleID, userID string) ([]Task, error)
 }
 
@@ -129,22 +130,24 @@ type DeleteTaskHandler struct {
 }
 
 func (h *DeleteTaskHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var data TaskDeleteRequest
-	err := json.NewDecoder(r.Body).Decode(&data)
-	if err != nil {
-		mw.SetErrorAsJSON(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	if data.UpdateCompleteSeries < BEHAVIOR_SeriesUpdate_None || data.UpdateCompleteSeries > BEHAVIOR_SeriesUpdate_All {
-		mw.SetErrorAsJSON(w, "updateCompleteSeries must be of [0,1,2]", http.StatusBadRequest)
-		return
+	overwriteModified := r.URL.Query().Get("overwriteModified") == "true"
+	seriesParam := r.URL.Query().Get("updateSeries")
+	var seriesUpdate int
+	if seriesParam != "" {
+		parsed, err := strconv.Atoi(seriesParam)
+		if err != nil || seriesUpdate < BEHAVIOR_SeriesUpdate_None || seriesUpdate > BEHAVIOR_SeriesUpdate_All {
+			mw.SetErrorAsJSON(w, "updateCompleteSeries must be of [0,1,2]", http.StatusBadRequest)
+			return
+		}
+		seriesUpdate = parsed
+	} else {
+		seriesUpdate = BEHAVIOR_SeriesUpdate_None
 	}
 
 	taskID := r.PathValue("id")
 
 	ctx := r.Context()
-	err = h.actions.DeleteTask(ctx, taskID, token.GetUserIDFromContext(ctx), data)
+	err := h.actions.DeleteTask(ctx, taskID, token.GetUserIDFromContext(ctx), seriesUpdate, overwriteModified)
 	if err != nil {
 		if errors.Is(err, ErrNoSuchTask) {
 			mw.SetErrorAsJSON(w, "task not found", http.StatusNotFound)
