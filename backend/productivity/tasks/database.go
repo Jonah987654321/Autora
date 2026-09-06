@@ -935,7 +935,7 @@ func (a *MongoTaskActions) GetOpenTaskForModule(ctx context.Context, moduleID, u
 	filter := bson.M{
 		"moduleID":        moduleObjectID,
 		"userID":          userObjectId,
-		"status":          bson.M{"$ne": StatusDone},
+		"status":          bson.M{"$lt": StatusCancelled},
 		"isDeletedShadow": false,
 		"isTemplate":      false,
 		"parentTask":      nil,

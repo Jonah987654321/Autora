@@ -11,6 +11,8 @@ type TaskStatus int
 const (
 	StatusOpen TaskStatus = iota
 	StatusInProgress
+	StatusBlocked
+	StatusCancelled
 	StatusDone
 )
 
