@@ -3,7 +3,7 @@ export default interface CalendarEvent {
   moduleID: string;
   title: string;
   description: string;
-  start: Date;
-  end: Date;
+  start: string;
+  end: string;
   type: number;
 }

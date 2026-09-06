@@ -11,7 +11,7 @@ export default interface Task {
     moduleID?: string,
     title: string,
     description: string,
-    dueDate?: Date,
+    dueDate?: string,
     estimatedMinutes: number,
     status: TaskStatusType,
     isParent: boolean,
