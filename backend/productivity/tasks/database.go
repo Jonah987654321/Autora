@@ -529,12 +529,14 @@ func (a *MongoTaskActions) updateParentAttributes(ctx context.Context, parentID,
 		estimatedMinutes := 0
 
 		allDone := true
+		fullyBlocked := true
 		allOpen := true
 
 		nonSeriesChild := false
 
 		for _, task := range children {
-			allDone = allDone && (task.Status == StatusDone)
+			allDone = allDone && (task.Status == StatusDone || task.Status == StatusCancelled)
+			fullyBlocked = fullyBlocked && (task.Status == StatusDone || task.Status == StatusCancelled || task.Status == StatusBlocked)
 			allOpen = allOpen && (task.Status == StatusOpen)
 			if task.Status != StatusDone {
 				estimatedMinutes += task.EstimatedMinutes
@@ -549,6 +551,8 @@ func (a *MongoTaskActions) updateParentAttributes(ctx context.Context, parentID,
 			newStatus = StatusDone
 		} else if allOpen {
 			newStatus = StatusOpen
+		} else if fullyBlocked {
+			newStatus = StatusBlocked
 		} else {
 			newStatus = StatusInProgress
 		}
