@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"time"
 
@@ -39,7 +40,12 @@ type AllCollections struct {
 
 func Init(cfg config.Database, quit <-chan os.Signal) (*mongo.Client, error) {
 	// Connection URI & client instance
-	dbURI := fmt.Sprintf("mongodb://%v:%v@%v/%v", cfg.UserName, cfg.UserPassword, cfg.Host, cfg.Name)
+	dbURI := fmt.Sprintf("mongodb://%v:%v@%v/%v?replicaSet=rs0",
+		url.QueryEscape(cfg.UserName),
+		url.QueryEscape(cfg.UserPassword),
+		cfg.Host,
+		cfg.Name,
+	)
 	client, err := mongo.Connect(options.Client().ApplyURI(dbURI))
 	if err != nil {
 		return nil, err
@@ -92,6 +98,18 @@ func SetupIndices(db *mongo.Database) error {
 	defer cancel()
 	// Execute
 	_, err := colAuth.Indexes().CreateOne(ctx, model)
+	if err != nil {
+		return err
+	}
+
+	// --- Task collection indexes
+	colTasks := db.Collection(COLNAME_Tasks)
+	_, err = colTasks.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "userID", Value: 1}}},
+		{Keys: bson.D{{Key: "seriesID", Value: 1}, {Key: "shadowID", Value: 1}}},
+		{Keys: bson.D{{Key: "parentTask", Value: 1}}},
+		{Keys: bson.D{{Key: "moduleID", Value: 1}, {Key: "userID", Value: 1}}},
+	})
 	if err != nil {
 		return err
 	}

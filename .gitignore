@@ -2,3 +2,4 @@
 backend/.tmp/
 plan.txt
 .vscode/
+docker/mongodb/mongo-keyfile
