@@ -30,6 +30,7 @@ import { createEvent, updateEvent } from "@/api/calendar";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { useDateLocale } from "@/hooks/use-dateLocale";
+import { Separator } from "@/components/ui/separator";
 
 interface ExternallyManagedOpenState {
   open: boolean;
@@ -77,8 +78,8 @@ export default function EventDialog({
     if (initialData !== undefined) {
       setTitle(initialData.title);
       setDescription(initialData.description);
-      setStart(initialData.start);
-      setEnd(initialData.end);
+      setStart(new Date(initialData.start));
+      setEnd(new Date(initialData.end));
       setType(initialData.type);
     } else {
       setTitle("");
@@ -217,6 +218,8 @@ export default function EventDialog({
               />
             </div>
 
+            <Separator />
+
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label>{t("calendar.eventDialog.fields.start")}</Label>
@@ -252,6 +255,8 @@ export default function EventDialog({
                 </div>
               )}
             </div>
+
+            <Separator />
 
             <div className="space-y-1.5">
               <Label>{t("calendar.eventDialog.fields.type")}</Label>

@@ -72,6 +72,7 @@ func CreateRouter(collections database.AllCollections, jwtService *token.JWTServ
 	router.Handle("PUT /productivity/tasks/{id}", tasks.NewUpdateTaskHandler(authMW, taskDB))
 	router.Handle("DELETE /productivity/tasks/{id}", tasks.NewDeleteTaskHandler(authMW, taskDB))
 	router.Handle("GET /productivity/tasks/modules/{id}/open", tasks.NewGetOpenTaskForModuleHandler(authMW, taskDB))
+	router.Handle("GET /productivity/tasks/{id}/subtasks", tasks.NewGetSubtasksHandler(authMW, taskDB))
 
 	return router
 }

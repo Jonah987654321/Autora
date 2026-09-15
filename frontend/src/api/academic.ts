@@ -1,6 +1,7 @@
 import type { WeeklyScheduleEntry } from "@/models/module";
 import { refreshClient } from "./client";
 import { format } from "date-fns";
+import type ModuleData from "@/models/module";
 
 export async function loadAllSemesters(signal?: AbortSignal) {
   const response = await refreshClient.get("/academic/semesters", {
@@ -70,9 +71,17 @@ export async function createModule(
   return response.data;
 }
 
+let inFlightModuleFetches = new Map<string, Promise<ModuleData>>();
 export async function getModule(moduleID: string) {
-  const response = await refreshClient.get(`/academic/modules/${moduleID}`);
-  return response.data;
+  if (!inFlightModuleFetches.has(moduleID)) {
+    inFlightModuleFetches.set(moduleID, refreshClient
+      .get(`/academic/modules/${moduleID}`)
+      .then((response) => response.data)
+      .finally(() => {
+        inFlightModuleFetches.delete(moduleID)
+      }));
+  }
+  return inFlightModuleFetches.get(moduleID);
 }
 
 export async function editModule(
@@ -99,7 +108,13 @@ export async function editModule(
   return response.data;
 }
 
-export async function setWeeklySchedule(moduleID: string, data: WeeklyScheduleEntry[]) {
-  const response = await refreshClient.put(`/academic/modules/${moduleID}/weekly-schedule`, data);
+export async function setWeeklySchedule(
+  moduleID: string,
+  data: WeeklyScheduleEntry[],
+) {
+  const response = await refreshClient.put(
+    `/academic/modules/${moduleID}/weekly-schedule`,
+    data,
+  );
   return response.data;
 }

@@ -283,7 +283,7 @@ func (a *MongoTaskActions) createTask(ctx context.Context, userID bson.ObjectID,
 	return &task, nil
 }
 
-func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMasterID, userID bson.ObjectID, lastGenerationTime *time.Time, updateBehavior int, startShadowID int, overwriteModified bool) error {
+func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMasterID, userID bson.ObjectID, lastGenerationTime *time.Time, updateBehavior int, startShadowID int, overwriteModified bool, updateInclude *bson.ObjectID) error {
 	if session := mongo.SessionFromContext(ctx); session == nil {
 		return ErrMongoSessionNeeded
 	}
@@ -309,7 +309,7 @@ func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMa
 	if updateBehavior == BEHAVIOR_SeriesUpdate_Upcoming {
 		shadowID = startShadowID
 	}
-	startTime := task.DueDate.AddDate(0, 0, task.RepeatDays*startShadowID)
+	startTime := task.DueDate.AddDate(0, 0, task.RepeatDays*shadowID)
 
 	// --- Delete previous generated series tasks
 	filter := bson.M{"seriesID": seriesMasterID, "userID": userID}
@@ -317,8 +317,12 @@ func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMa
 		filter["shadowID"] = bson.M{"$gte": startShadowID}
 	}
 	if !overwriteModified {
-		filter["isModifiedShadow"] = false
 		filter["isDeletedShadow"] = false
+		if updateInclude != nil {
+			filter["$or"] = bson.A{bson.M{"isModifiedShadow": false}, bson.M{"_id": *updateInclude}}
+		} else {
+			filter["isModifiedShadow"] = false
+		}
 	}
 	_, err = a.CollectionTasks.DeleteMany(dbCtx, filter)
 	if err != nil {
@@ -420,7 +424,7 @@ func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMa
 			return fmt.Errorf("failed to decode children for master series task: %w", err)
 		}
 		for _, t := range tasks {
-			err := a.forceGenerateTaskSeries(ctx, t.ID, userID, lastGenerated, updateBehavior, startShadowID, overwriteModified)
+			err := a.forceGenerateTaskSeries(ctx, t.ID, userID, lastGenerated, updateBehavior, startShadowID, overwriteModified, nil)
 			if err != nil {
 				return fmt.Errorf("child force generation failed: %w", err)
 			}
@@ -596,13 +600,13 @@ func (a *MongoTaskActions) CreateTask(ctx context.Context, userID string, req Ta
 				if err != nil {
 					return nil, fmt.Errorf("failed to update parent attributes: %w", err)
 				}
-				err = a.forceGenerateTaskSeries(sessCtx, *master.ParentTask, userObjectId, nil, BEHAVIOR_SeriesUpdate_All, 0, false)
+				err = a.forceGenerateTaskSeries(sessCtx, *master.ParentTask, userObjectId, nil, BEHAVIOR_SeriesUpdate_All, 0, false, nil)
 				if err != nil {
 					return nil, fmt.Errorf("failed to insert new task series: %w", err)
 				}
 				return master, nil
 			}
-			err = a.forceGenerateTaskSeries(sessCtx, master.ID, userObjectId, nil, BEHAVIOR_SeriesUpdate_All, 0, true)
+			err = a.forceGenerateTaskSeries(sessCtx, master.ID, userObjectId, nil, BEHAVIOR_SeriesUpdate_All, 0, true, nil)
 			if err != nil {
 				return nil, fmt.Errorf("failed to insert new task series: %w", err)
 			}
@@ -662,7 +666,11 @@ func (a *MongoTaskActions) UpdateTask(ctx context.Context, taskID, userID string
 	defer session.EndSession(ctx)
 
 	res, err := session.WithTransaction(ctx, func(sessCtx context.Context) (interface{}, error) {
-		if validated.SeriesID == nil || req.UpdateCompleteSeries == BEHAVIOR_SeriesUpdate_None {
+		becomingNewTemplate := validated.SeriesID == nil && validated.IsTemplate && !pre.IsTemplate
+		isExistingSeriesInstance := validated.SeriesID != nil
+
+		switch {
+		case !becomingNewTemplate && (!isExistingSeriesInstance || req.UpdateCompleteSeries == BEHAVIOR_SeriesUpdate_None):
 			// A task cannot be made a template without haven UpdateCompleteSeries=true
 			if validated.IsTemplate && !pre.IsTemplate {
 				return nil, ErrInvalidUpdateSeries
@@ -671,6 +679,9 @@ func (a *MongoTaskActions) UpdateTask(ctx context.Context, taskID, userID string
 			if validated.SeriesID != nil {
 				validated.IsModifiedShadow = true
 			}
+
+			// On only a single task update, repeat days cannot be changed
+			validated.RepeatDays = pre.RepeatDays
 
 			// Only the task itself needs to be updated
 			res, err := a.performTaskUpdate(sessCtx, taskObjectID, userObjectId, *validated)
@@ -684,7 +695,40 @@ func (a *MongoTaskActions) UpdateTask(ctx context.Context, taskID, userID string
 				}
 			}
 			return res, nil
-		} else {
+
+		case becomingNewTemplate:
+			// Upgrade task itself to template:
+			res, err := a.performTaskUpdate(sessCtx, taskObjectID, userObjectId, *validated)
+			if err != nil {
+				return nil, fmt.Errorf("failed to write task update to db: %w", err)
+			}
+
+			// Upgrade children
+			dbCtx, cancel := context.WithTimeout(sessCtx, 4*time.Second)
+			defer cancel()
+			_, err = a.CollectionTasks.UpdateMany(
+				dbCtx,
+				bson.M{"parentTask": taskObjectID, "userID": userObjectId},
+				bson.M{"$set": bson.M{"isTemplate": true, "repeatDays": validated.RepeatDays}},
+			)
+			if err != nil {
+				return nil, fmt.Errorf("failed to upgrade children to template: %w", err)
+			}
+			_, err = a.CollectionTasks.UpdateMany(
+				dbCtx,
+				bson.M{"parentTask": taskObjectID, "dueDate": bson.M{"$exists": false}, "userID": userObjectId},
+				bson.M{"$set": bson.M{"dueDate": validated.DueDate}},
+			)
+			if err != nil {
+				return nil, fmt.Errorf("failed to propagate parent dueDate to children without dueDate: %w", err)
+			}
+
+			if err := a.forceGenerateTaskSeries(sessCtx, taskObjectID, userObjectId, nil, BEHAVIOR_SeriesUpdate_All, 0, req.OverwriteModified, nil); err != nil {
+				return nil, fmt.Errorf("failed to generate new task series: %w", err)
+			}
+			return res, nil
+
+		default:
 			if validated.SeriesID == nil {
 				return nil, ErrInvalidUpdateSeries
 			}
@@ -698,7 +742,7 @@ func (a *MongoTaskActions) UpdateTask(ctx context.Context, taskID, userID string
 				ModuleID:         validated.ModuleID,
 				Title:            validated.Title,
 				Description:      validated.Description,
-				DueDate:          validated.DueDate,
+				DueDate:          template.DueDate,
 				EstimatedMinutes: validated.EstimatedMinutes,
 				Status:           StatusOpen,
 				IsParent:         validated.IsParent,
@@ -717,7 +761,7 @@ func (a *MongoTaskActions) UpdateTask(ctx context.Context, taskID, userID string
 				dbCtx, cancel := context.WithTimeout(sessCtx, 2*time.Second)
 				defer cancel()
 
-				_, err := a.CollectionTasks.UpdateMany(dbCtx, bson.M{"parentTask": *validated.SeriesID}, bson.M{"$set": bson.M{"repeatDays": validated.RepeatDays}})
+				_, err := a.CollectionTasks.UpdateMany(dbCtx, bson.M{"parentTask": *validated.SeriesID, "userID": userObjectId}, bson.M{"$set": bson.M{"repeatDays": validated.RepeatDays}})
 				if err != nil {
 					return nil, fmt.Errorf("failed to propagate updated repeatDays to children: %w", err)
 				}
@@ -730,7 +774,7 @@ func (a *MongoTaskActions) UpdateTask(ctx context.Context, taskID, userID string
 				}
 			}
 
-			err = a.forceGenerateTaskSeries(sessCtx, *validated.SeriesID, userObjectId, nil, req.UpdateCompleteSeries, validated.SeriesShadowID, req.OverwriteModified)
+			err = a.forceGenerateTaskSeries(sessCtx, *validated.SeriesID, userObjectId, nil, req.UpdateCompleteSeries, validated.SeriesShadowID, req.OverwriteModified, &pre.ID)
 			if err != nil {
 				return nil, fmt.Errorf("failed to regenerate task series: %w", err)
 			}
@@ -763,7 +807,7 @@ func (a *MongoTaskActions) deleteTemplateHandleShadows(ctx context.Context, task
 		filter["shadowID"] = bson.M{"$gte": shadowID}
 	}
 	if !overwriteModified {
-		filter["isModifiedShadow"] = false
+		filter["$or"] = bson.A{bson.M{"isModifiedShadow": false}, bson.M{"shadowID": shadowID}}
 	}
 	_, err = a.CollectionTasks.DeleteMany(dbCtx, filter)
 	if err != nil {
@@ -843,7 +887,7 @@ func (a *MongoTaskActions) DeleteTask(ctx context.Context, taskID, userID string
 				if err != nil {
 					return nil, fmt.Errorf("failed to update parent attributes: %w", err)
 				}
-				err = a.forceGenerateTaskSeries(sessCtx, *seriesTemplate.ParentTask, userObjectId, nil, seriesUpdate, task.SeriesShadowID, overwriteModified)
+				err = a.forceGenerateTaskSeries(sessCtx, *seriesTemplate.ParentTask, userObjectId, nil, seriesUpdate, task.SeriesShadowID, overwriteModified, nil)
 				if err != nil {
 					return nil, fmt.Errorf("failed to regenerate task series: %w", err)
 				}
@@ -945,8 +989,112 @@ func (a *MongoTaskActions) GetOpenTaskForModule(ctx context.Context, moduleID, u
 		"parentTask":      nil,
 	}
 
+	pipeline := mongo.Pipeline{
+		// 1. Filter
+		bson.D{{Key: "$match", Value: filter}},
+
+		// 2. Temporary helper field to sort empty dueDate last
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "sortWeight", Value: bson.D{
+				{Key: "$cond", Value: bson.A{
+					bson.D{{Key: "$eq", Value: bson.A{bson.D{{Key: "$type", Value: "$dueDate"}}, "date"}}},
+					0, // 0 -> dueDate exists
+					1, // 1 -> no dueDate
+				}},
+			}},
+		}}},
+
+		// 3. Sort
+		bson.D{{Key: "$sort", Value: bson.D{
+			{Key: "sortWeight", Value: 1},
+			{Key: "dueDate", Value: 1},
+		}}},
+
+		// 4. Remove helper field from result
+		bson.D{{Key: "$unset", Value: "sortWeight"}},
+	}
+
 	tasks := []Task{}
-	res, err := a.CollectionTasks.Find(dbCtx, filter)
+	res, err := a.CollectionTasks.Aggregate(dbCtx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch tasks: %w", err)
+	}
+	err = res.All(dbCtx, &tasks)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode tasks: %w", err)
+	}
+
+	return tasks, nil
+}
+
+func (a *MongoTaskActions) GetSubtasks(ctx context.Context, parentID, userID string) ([]Task, error) {
+	// Parse IDs to ObjectIDs
+	userObjectId, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert userID to ObjectID: %w", err)
+	}
+	parentObjectID, err := bson.ObjectIDFromHex(parentID)
+	if err != nil {
+		return nil, ErrNoSuchTask
+	}
+
+	parent, err := a.fetchTask(ctx, parentObjectID, userObjectId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch parent: %w", err)
+	}
+
+	dbCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	filter := bson.M{
+		"parentTask":      parent.ID,
+		"userID":          userObjectId,
+		"isDeletedShadow": false,
+		"isTemplate":      false,
+	}
+
+	pipeline := mongo.Pipeline{
+		// 1. Filter
+		bson.D{{Key: "$match", Value: filter}},
+
+		// 2. Temporary helper field for sorting
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "notFinishedWeight", Value: bson.D{
+				{Key: "$cond", Value: bson.D{
+					{Key: "if", Value: bson.D{
+						{Key: "$gte", Value: bson.A{"$status", StatusCancelled}},
+					}},
+					{Key: "then", Value: 1},
+					{Key: "else", Value: 0},
+				}},
+			}},
+		}}},
+
+		// 3. Temporary helper field to sort empty dueDate last
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "sortWeight", Value: bson.D{
+				{Key: "$cond", Value: bson.A{
+					bson.D{{Key: "$eq", Value: bson.A{bson.D{{Key: "$type", Value: "$dueDate"}}, "date"}}},
+					0, // 0 -> dueDate exists
+					1, // 1 -> no dueDate
+				}},
+			}},
+		}}},
+
+		// 4. Sort
+		bson.D{{Key: "$sort", Value: bson.D{
+			{Key: "notFinishedWeight", Value: 1},
+			{Key: "sortWeight", Value: 1},
+			{Key: "dueDate", Value: 1},
+			{Key: "status", Value: 1},
+		}}},
+
+		// 5. Remove helper field from result
+		bson.D{{Key: "$unset", Value: bson.A{"sortWeight", "notFinishedWeight"}}},
+	}
+
+	tasks := []Task{}
+	res, err := a.CollectionTasks.Aggregate(dbCtx, pipeline)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch tasks: %w", err)
 	}

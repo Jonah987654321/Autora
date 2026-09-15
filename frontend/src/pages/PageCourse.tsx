@@ -40,6 +40,9 @@ import { useTranslation } from "react-i18next";
 import { NavLink, useParams } from "react-router";
 import { format } from "date-fns";
 import { useDateLocale } from "@/hooks/use-dateLocale";
+import TodoList from "@/components/specific/todos/display/TodoList";
+import { getOpenTodosForModule } from "@/api/productivity";
+import TodoDialog from "@/components/specific/todos/util/TodoDialog";
 
 interface courseMetatagProps {
   content: string;
@@ -66,6 +69,7 @@ export default function PageCourse() {
   const [semesterData, setSemesterData] = useState<SemesterData | undefined>();
 
   const [eventRefreshTrigger, setEventRefreshTrigger] = useState(0);
+  const [todoRefreshTrigger, setTodoRefreshTrigger] = useState(0);
 
   const fetchCourse = async () => {
     if (courseId === undefined) {
@@ -297,11 +301,25 @@ export default function PageCourse() {
                     <CardActionHeader
                       title={t("course.cards.toDoList")}
                       action={
-                        <Button size="icon-lg" variant="outline">
-                          <Plus />
-                        </Button>
+                        <TodoDialog createTodosInModule={courseId} onRefreshRequired={() =>
+                            setTodoRefreshTrigger((prev) => prev + 1)
+                          }>
+                          <Button size="icon-lg" variant="outline">
+                            <Plus />
+                          </Button>
+                        </TodoDialog>
                       }
                     ></CardActionHeader>
+                    <CardContent>
+                      <TodoList
+                        fetchEntries={async () => {
+                          return courseId === undefined
+                            ? []
+                            : await getOpenTodosForModule(courseId);
+                        }}
+                        refreshTrigger={todoRefreshTrigger}
+                      />
+                    </CardContent>
                   </Card>
                 </div>
                 <div className="flex-1">
@@ -347,57 +365,58 @@ export default function PageCourse() {
                         moduleData.weeklySchedule !== undefined &&
                         moduleData.weeklySchedule.length > 0 ? (
                           <div className="flex flex-col">
-                            {moduleData.weeklySchedule.map(
-                                (e, index) => {
-                                  const startDate = new Date();
-                                  startDate.setHours(
-                                    Math.floor(e.start / 60),
-                                    e.start % 60,
-                                    0,
-                                    0,
-                                  );
+                            {moduleData.weeklySchedule.map((e, index) => {
+                              const startDate = new Date();
+                              startDate.setHours(
+                                Math.floor(e.start / 60),
+                                e.start % 60,
+                                0,
+                                0,
+                              );
 
-                                  const endDate = new Date();
-                                  endDate.setHours(
-                                    Math.floor(e.end / 60),
-                                    e.end % 60,
-                                    0,
-                                    0,
-                                  );
+                              const endDate = new Date();
+                              endDate.setHours(
+                                Math.floor(e.end / 60),
+                                e.end % 60,
+                                0,
+                                0,
+                              );
 
-                                  return (
-                                    <div
-                                      key={index}
-                                      className="flex justify-between items-baseline py-1.5 border-b border-border/40 last:border-0"
-                                    >
-                                      <div className="flex-1">
-                                        <div className="flex items-baseline space-x-2 overflow-hidden">
-                                          <span className="text-sm font-medium">
-                                            {t(
-                                              `calendar.weekdays.${e.weekday}`,
-                                            )}
-                                          </span>
-                                          <span className="text-xs text-muted-foreground truncate">
-                                            {t(`course.types.${e.type}`)}
-                                          </span>
-                                        </div>
-                                      </div>
-                                      {e.room !== "" && (
-                                        <>
-                                          <div className="text-muted-foreground">
-                                            {e.room}
-                                          </div>
-                                          <SeperatorDot />
-                                        </>
-                                      )}
-                                      <div className="text-xs font-medium whitespace-nowrap">
-                                        {format(startDate, "p", {locale: dateLocale})} -{" "}
-                                        {format(endDate, "p", {locale: dateLocale})}
-                                      </div>
+                              return (
+                                <div
+                                  key={index}
+                                  className="flex justify-between items-baseline py-1.5 border-b border-border/40 last:border-0"
+                                >
+                                  <div className="flex-1">
+                                    <div className="flex items-baseline space-x-2 overflow-hidden">
+                                      <span className="text-sm font-medium">
+                                        {t(`calendar.weekdays.${e.weekday}`)}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground truncate">
+                                        {t(`course.types.${e.type}`)}
+                                      </span>
                                     </div>
-                                  );
-                                },
-                              )}
+                                  </div>
+                                  {e.room !== "" && (
+                                    <>
+                                      <div className="text-muted-foreground">
+                                        {e.room}
+                                      </div>
+                                      <SeperatorDot />
+                                    </>
+                                  )}
+                                  <div className="text-xs font-medium whitespace-nowrap">
+                                    {format(startDate, "p", {
+                                      locale: dateLocale,
+                                    })}{" "}
+                                    -{" "}
+                                    {format(endDate, "p", {
+                                      locale: dateLocale,
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           <div className="flex flex-col items-center justify-center text-muted-foreground mb-4 space-y-1">
@@ -424,7 +443,12 @@ export default function PageCourse() {
                     <CardActionHeader
                       title={t("course.cards.events")}
                       action={
-                        <EventDialog createEventsInModule={courseId} onRefreshRequired={() => setEventRefreshTrigger((prev) => prev+1)}>
+                        <EventDialog
+                          createEventsInModule={courseId}
+                          onRefreshRequired={() =>
+                            setEventRefreshTrigger((prev) => prev + 1)
+                          }
+                        >
                           <Button size="icon-lg" variant="outline">
                             <CalendarPlus />
                           </Button>

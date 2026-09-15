@@ -7,12 +7,18 @@ export const SeriesUpdate = {
   All: 2,
 } as const;
 
-export type SeriesUpdateType =
-  (typeof SeriesUpdate)[keyof typeof SeriesUpdate];
+export type SeriesUpdateType = (typeof SeriesUpdate)[keyof typeof SeriesUpdate];
 
 export async function getOpenTodosForModule(moduleID: string) {
   const response = await refreshClient.get(
     `/productivity/tasks/modules/${moduleID}/open`,
+  );
+  return response.data;
+}
+
+export async function getSubtasks(taskID: string) {
+  const response = await refreshClient.get(
+    `/productivity/tasks/${taskID}/subtasks`,
   );
   return response.data;
 }
@@ -56,19 +62,23 @@ export async function updateTask(
   isTemplate?: boolean,
   repeatDays?: number,
 ) {
-  const response = await refreshClient.put(`/productivity/tasks/${taskID}`, {
-    moduleID: moduleID,
-    title: title,
-    description: description,
-    dueDate: dueDate,
-    estimatedMinutes: estimatedMinutes,
-    status: status,
-    parentTask: parentTask,
-    isTemplate: isTemplate,
-    repeatDays: repeatDays,
-    updateCompleteSeries: seriesUpdate,
-    overwriteModified: overwriteModified,
-  });
+  const response = await refreshClient.put(
+    `/productivity/tasks/${taskID}`,
+    {
+      moduleID: moduleID,
+      title: title,
+      description: description,
+      dueDate: dueDate,
+      estimatedMinutes: estimatedMinutes,
+      status: status,
+      parentTask: parentTask,
+      isTemplate: isTemplate,
+      repeatDays: repeatDays,
+      updateCompleteSeries: seriesUpdate,
+      overwriteModified: overwriteModified,
+    },
+    { timeout: 2000 },
+  );
   return response.data;
 }
 

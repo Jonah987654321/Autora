@@ -39,7 +39,9 @@
         "type": "Type of the event"
       },
       "dateTimePicker": {
-        "placeholder": "Pick a date"
+        "placeholder": "Pick a date",
+        "errorOverMaxDate": "Date must be before {{date}}",
+        "errorBeforeMinDate": "Date must be after {{date}}"
       },
       "actions": {
         "create": "Create",
@@ -53,6 +55,73 @@
       "content": "Are you sure you want to delete the following event? This action cannot be undone",
       "actionCancel": "Keep event",
       "actionDelete": "Delete permanently"
+    }
+  },
+  "todos": {
+    "allDone": "All tasks done",
+    "dialog": {
+      "titleNew": "Create a new task",
+      "submitNew": "Create",
+      "submitEdit": "Save",
+      "cancelEdit": "Discard changes",
+      "fields": {
+        "title": "Task title",
+        "titlePlaceholder": "E.g., Finish assignment",
+        "description": "Description",
+        "descriptionPlaceholder": "Note additional information relevant to this task",
+        "dueDate": "Due date",
+        "errorEmptyDueDate": "Due date cannot be empty for a repeating task",
+        "repeat": "Repeat this task",
+        "repeatDays": {
+          "every": "Every",
+          "days": "day(s)"
+        },
+        "estimatedMinutes": "Estimated time",
+        "estimatedMinutesUnit": "min"
+      },
+      "display": {
+        "dueTo": "Due to",
+        "repeats_one": "Repeats every {{count}} day",
+        "repeats_other": "Repeats every {{count}} days",
+        "subtasks": "Subtasks",
+        "newSubtask": "Add new subtask",
+        "editToggle": "Edit"
+      }
+    },
+    "delete": {
+      "title": "Delete task?",
+      "description": "Are you sure you want to delete the following task? This action cannot be undone.",
+      "actionCancel": "Keep task",
+      "actionDelete": "Delete permanently"
+    },
+    "updateDecider": {
+      "title": "Choose update behavior",
+      "description": "The task you are updating is part of a repeating task series. Please decide wether you only want to update this single task or perform a cascading update",
+      "descriptionDelete": "The task you are deleting is part of a repeating task series. Please decide wether you only want to delete this single task or delete the whole series",
+      "options": {
+        "thisTaskOnly": "Only this task",
+        "upcoming": "This task and all later tasks",
+        "wholeSeries": "The whole series"
+      },
+      "overwriteLabel": "Overwrite modified tasks in the series",
+      "overwriteLabelDelete": "Delete modified tasks in the series",
+      "actionCancel": "Cancel",
+      "actionUpdate": "Update"
+    },
+    "status": {
+      "0": "Open",
+      "1": "In progress",
+      "2": "Blocked",
+      "3": "Cancelled",
+      "4": "Done"
+    },
+    "errors": {
+      "statusUpdateFailed": "Failed to update task status"
+    },
+    "toasts": {
+      "markedAsDone": "Task marked as done",
+      "markedAsCancelled": "Task marked as cancelled",
+      "undo": "Undo"
     }
   },
   "preauth": {

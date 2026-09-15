@@ -16,6 +16,7 @@ type TaskActions interface {
 	UpdateTask(ctx context.Context, taskID, userID string, req TaskUpdateRequest) (*Task, error)
 	DeleteTask(ctx context.Context, taskID, userID string, seriesUpdate int, overwriteModified bool) error
 	GetOpenTaskForModule(ctx context.Context, moduleID, userID string) ([]Task, error)
+	GetSubtasks(ctx context.Context, parentID, userID string) ([]Task, error)
 }
 
 // --- Handle creating tasks
@@ -201,6 +202,37 @@ func (h *GetOpenTaskForModuleHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 }
 func NewGetOpenTaskForModuleHandler(authMiddleware mw.Middleware, actions TaskActions) http.Handler {
 	handler := GetOpenTaskForModuleHandler{
+		actions: actions,
+	}
+	return mw.CoreChain(&handler, authMiddleware)
+}
+
+// --- Handler for retrieving subtasks
+type GetSubtasksHandler struct {
+	actions TaskActions
+}
+
+func (h *GetSubtasksHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	parentID := r.PathValue("id")
+
+	ctx := r.Context()
+	tasks, err := h.actions.GetSubtasks(ctx, parentID, token.GetUserIDFromContext(ctx))
+	if err != nil {
+		if errors.Is(err, ErrNoSuchTask) {
+			mw.SetErrorAsJSON(w, "task not found", http.StatusNotFound)
+			return
+		}
+
+		slog.Error("fetching subtasks", "error", err)
+		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tasks)
+}
+func NewGetSubtasksHandler(authMiddleware mw.Middleware, actions TaskActions) http.Handler {
+	handler := GetSubtasksHandler{
 		actions: actions,
 	}
 	return mw.CoreChain(&handler, authMiddleware)
