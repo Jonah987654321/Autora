@@ -27,7 +27,9 @@
       },
       "createTitle": "Neuen Termin anlegen",
       "dateTimePicker": {
-        "placeholder": "Wähle ein Datum"
+        "placeholder": "Wähle ein Datum",
+        "errorBeforeMinDate": "Datum muss nach {{date}} sein",
+        "errorOverMaxDate": "Datum muss vor {{date}} sein"
       },
       "editTitle": "Termin bearbeiten",
       "fields": {
@@ -212,5 +214,72 @@
     "action": "Zu einem anderen Semester übertragen",
     "placeholderDestinationSelect": "Wähle ein Zielsemester",
     "title": "Übertragen"
+  },
+  "todos": {
+    "allDone": "Alle Aufgaben erledigt",
+    "delete": {
+      "actionCancel": "Aufgabe behalten",
+      "actionDelete": "Dauerhaft löschen",
+      "description": "Bist du sicher, dass du folgende Aufgabe löschen willst? Das Löschen kann nicht rückgängig gemacht werden.",
+      "title": "Aufgabe löschen?"
+    },
+    "dialog": {
+      "cancelEdit": "Verwerfen",
+      "display": {
+        "dueTo": "Fällig bis",
+        "editToggle": "Bearbeiten",
+        "newSubtask": "Neue Teilaufgabe hinzufügen",
+        "repeats_one": "Wiederholt sich jeden Tag",
+        "repeats_other": "Wiederholt sich alle {{count}} Tage",
+        "subtasks": "Teilaufgaben"
+      },
+      "fields": {
+        "description": "Beschreibung",
+        "descriptionPlaceholder": "Notiere dir zusätzlich relevante Infos für die Aufgabe",
+        "dueDate": "Fälligskeitsdatum",
+        "errorEmptyDueDate": "Fälligskeitsdatum kann nicht leer sein bei wiederkehrenden Aufgaben",
+        "estimatedMinutes": "Geschätzter Aufwand",
+        "estimatedMinutesUnit": "min",
+        "repeat": "Wiederkehrende Aufgabe",
+        "repeatDays": {
+          "days": "Alle",
+          "every": "Tage"
+        },
+        "title": "Aufgabentitle",
+        "titlePlaceholder": "Z.B. Vorlesung zusammenfassen"
+      },
+      "submitEdit": "Speichern",
+      "submitNew": "Erstellen",
+      "titleNew": "Neue Aufgabe erstellen"
+    },
+    "errors": {
+      "statusUpdateFailed": "Aktualisieren des Aufgabenstatus fehlgeschlagen"
+    },
+    "status": {
+      "0": "Offen",
+      "1": "In Arbeit",
+      "2": "Blockiert",
+      "3": "Verworfen",
+      "4": "Erledigt"
+    },
+    "toasts": {
+      "markedAsCancelled": "Aufgabe als verworfen markiert",
+      "markedAsDone": "Aufgabe als erledigt markiert",
+      "undo": "Rückgängig"
+    },
+    "updateDecider": {
+      "actionCancel": "Abbrechen",
+      "actionUpdate": "Übernehmen",
+      "description": "Die Aufgabe die du bearbeitest ist eine wiederkehrende Aufgabe. Bitte entscheide ob du nur diese Aufgabe bearbeiten willst oder deine Änderungen für die gesamte Serie übernommen werden sollen",
+      "descriptionDelete": "Die Aufgabe die du löschst ist eine wiederkehrende Aufgabe. Bitte entscheide ob du nur diese Aufgabe löschen willst oder die gesamte Serie",
+      "options": {
+        "thisTaskOnly": "Nur diese Aufgabe",
+        "upcoming": "Diese Aufgabe und alle späteren",
+        "wholeSeries": "Die gesamte Serie"
+      },
+      "overwriteLabel": "Bereits geänderte Aufgaben in der Serie überschreiben",
+      "overwriteLabelDelete": "Geänderte Aufgaben in der Serie löschen",
+      "title": "Änderungsverhalten auswählen"
+    }
   }
 }

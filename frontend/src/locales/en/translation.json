@@ -81,7 +81,7 @@
       },
       "display": {
         "dueTo": "Due to",
-        "repeats_one": "Repeats every {{count}} day",
+        "repeats_one": "Repeats every day",
         "repeats_other": "Repeats every {{count}} days",
         "subtasks": "Subtasks",
         "newSubtask": "Add new subtask",
