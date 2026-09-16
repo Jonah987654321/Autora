@@ -46,10 +46,11 @@ var (
 	ErrDescriptionToLong    = newValidationErr(fmt.Sprintf("description must not be longer than %v characters", MAXLEN_Description))
 
 	// Wrong-operation errors
-	ErrTemplateEdit        = newBadOperationErr("a template cannot be edited directly")
-	ErrInvalidUpdateSeries = newBadOperationErr("updateCompleteSeries has an invalid value for the task being updated")
-	ErrTemplateDelete      = newBadOperationErr("delete cannot be called for a template directly")
-	ErrDeletedShadowModify = newBadOperationErr("cannot modify a deleted shadow")
+	ErrTemplateEdit                     = newBadOperationErr("a template cannot be edited directly")
+	ErrInvalidUpdateSeries              = newBadOperationErr("updateCompleteSeries has an invalid value for the task being updated")
+	ErrTemplateDelete                   = newBadOperationErr("delete cannot be called for a template directly")
+	ErrDeletedShadowModify              = newBadOperationErr("cannot modify a deleted shadow")
+	ErrModifyRepeatDaysWithoutOverwrite = newBadOperationErr("repeatDays cannot be modified without overwriting modified or SeriesUpdate ALL")
 
 	// Internal errors (shouldn't occur)
 	ErrMongoSessionNeeded = errors.New("tasks: this function needs a mongo session")

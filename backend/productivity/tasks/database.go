@@ -172,11 +172,17 @@ func (a *MongoTaskActions) validateTaskRequest(ctx context.Context, req TaskRequ
 	// Parent state cannot be set from a request, always take the server value
 	validated.IsParent = pre != nil && pre.IsParent
 	if validated.IsParent {
-		if pre.DueDate != nil && validated.DueDate != nil && !pre.DueDate.Equal(*validated.DueDate) {
+		if (pre.DueDate != nil && validated.DueDate != nil && !pre.DueDate.Equal(*validated.DueDate)) ||
+			(pre.DueDate == nil && validated.DueDate != nil) {
 			// Validate no childs due date is after the new due date
-			count, err := a.CollectionTasks.CountDocuments(dbCtx, bson.M{"parentTask": pre.ID, "dueDate": bson.M{"$gt": validated.DueDate}})
+			count, err := a.CollectionTasks.CountDocuments(dbCtx, bson.M{
+				"parentTask":      pre.ID,
+				"userID":          userID,
+				"isDeletedShadow": false,
+				"dueDate":         bson.M{"$gt": validated.DueDate}},
+			)
 			if err != nil {
-				return nil, fmt.Errorf("failed to check child due date for parent due date update")
+				return nil, fmt.Errorf("failed to check child due date for parent due date update: %w", err)
 			}
 			if count > 0 {
 				return nil, ErrParentChildDueDate
@@ -283,7 +289,7 @@ func (a *MongoTaskActions) createTask(ctx context.Context, userID bson.ObjectID,
 	return &task, nil
 }
 
-func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMasterID, userID bson.ObjectID, lastGenerationTime *time.Time, updateBehavior int, startShadowID int, overwriteModified bool, updateInclude *bson.ObjectID) error {
+func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMasterID, userID bson.ObjectID, maxShadowID *int, updateBehavior int, startShadowID int, overwriteModified bool, updateInclude *bson.ObjectID) error {
 	if session := mongo.SessionFromContext(ctx); session == nil {
 		return ErrMongoSessionNeeded
 	}
@@ -309,20 +315,44 @@ func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMa
 	if updateBehavior == BEHAVIOR_SeriesUpdate_Upcoming {
 		shadowID = startShadowID
 	}
+	startIndex := shadowID
 	startTime := task.DueDate.AddDate(0, 0, task.RepeatDays*shadowID)
+
+	// --- Fetch no overwrite tasks to preserve data
+	noOverwriteTasks := []Task{}
+	if !overwriteModified {
+		var modShadowFilter bson.M
+		if updateInclude != nil {
+			modShadowFilter = bson.M{"isModifiedShadow": true, "_id": bson.M{"$ne": *updateInclude}}
+		} else {
+			modShadowFilter = bson.M{"isModifiedShadow": true}
+		}
+		filter := bson.M{
+			"seriesID": seriesMasterID,
+			"userID":   userID,
+			"$or": bson.A{
+				bson.M{"isDeletedShadow": true},
+				modShadowFilter,
+			},
+		}
+		res, err := a.CollectionTasks.Find(dbCtx, filter)
+		if err != nil {
+			return fmt.Errorf("failed to fetch non-overwrite tasks: %w", err)
+		}
+		err = res.All(dbCtx, &noOverwriteTasks)
+		if err != nil {
+			return fmt.Errorf("failed to decode non-overwrite tasks: %w", err)
+		}
+	}
+	noOverwriteLookup := make(map[int]Task, len(noOverwriteTasks))
+	for _, doc := range noOverwriteTasks {
+		noOverwriteLookup[doc.SeriesShadowID] = doc
+	}
 
 	// --- Delete previous generated series tasks
 	filter := bson.M{"seriesID": seriesMasterID, "userID": userID}
 	if updateBehavior == BEHAVIOR_SeriesUpdate_Upcoming {
 		filter["shadowID"] = bson.M{"$gte": startShadowID}
-	}
-	if !overwriteModified {
-		filter["isDeletedShadow"] = false
-		if updateInclude != nil {
-			filter["$or"] = bson.A{bson.M{"isModifiedShadow": false}, bson.M{"_id": *updateInclude}}
-		} else {
-			filter["isModifiedShadow"] = false
-		}
 	}
 	_, err = a.CollectionTasks.DeleteMany(dbCtx, filter)
 	if err != nil {
@@ -330,8 +360,8 @@ func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMa
 	}
 
 	var endTime time.Time
-	if lastGenerationTime != nil {
-		endTime = *lastGenerationTime
+	if maxShadowID != nil {
+		endTime = task.DueDate.AddDate(0, 0, task.RepeatDays*(*maxShadowID))
 	} else {
 		semesterTimeframe, err := a.fetchSemesterTimeframe(ctx, moduleFromSemester.SemesterID)
 		if err != nil {
@@ -339,8 +369,6 @@ func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMa
 		}
 		endTime = semesterTimeframe.EndDate.Time
 	}
-
-	var lastGenerated *time.Time
 
 	// --- If it is a child template, fetch generated shadow parents for IDs
 	parentTasks := []Task{}
@@ -359,22 +387,6 @@ func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMa
 		parentLookup[doc.SeriesShadowID] = doc.ID
 	}
 
-	noOverwriteTasks := []Task{}
-	if !overwriteModified {
-		res, err := a.CollectionTasks.Find(dbCtx, bson.M{"seriesID": seriesMasterID, "userID": userID})
-		if err != nil {
-			return fmt.Errorf("failed to fetch not-deleted tasks: %w", err)
-		}
-		err = res.All(dbCtx, &noOverwriteTasks)
-		if err != nil {
-			return fmt.Errorf("failed to decode not-deleted tasks: %w", err)
-		}
-	}
-	noOverwriteLookup := make(map[int]bson.ObjectID, len(noOverwriteTasks))
-	for _, doc := range noOverwriteTasks {
-		noOverwriteLookup[doc.SeriesShadowID] = doc.ID
-	}
-
 	for i := startTime; !i.After(endTime); i = i.AddDate(0, 0, task.RepeatDays) {
 		var parent *bson.ObjectID
 		if task.ParentTask != nil {
@@ -384,7 +396,7 @@ func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMa
 			}
 			parent = &parentID
 		}
-		_, skip := noOverwriteLookup[shadowID]
+		pre, skip := noOverwriteLookup[shadowID]
 		if !skip {
 			bulk = append(bulk, Task{
 				ID:               bson.NewObjectID(),
@@ -402,18 +414,38 @@ func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMa
 				RepeatDays:       task.RepeatDays,
 				SeriesShadowID:   shadowID,
 			})
+		} else {
+			bulk = append(bulk, Task{
+				ID:               bson.NewObjectID(),
+				UserID:           userID,
+				ModuleID:         pre.ModuleID,
+				Title:            pre.Title,
+				Description:      pre.Description,
+				DueDate:          pre.DueDate,
+				EstimatedMinutes: pre.EstimatedMinutes,
+				Status:           pre.Status,
+				IsParent:         pre.IsParent,
+				ParentTask:       parent,
+				IsTemplate:       false,
+				SeriesID:         &task.ID,
+				RepeatDays:       task.RepeatDays,
+				SeriesShadowID:   shadowID,
+				IsDeletedShadow:  pre.IsDeletedShadow,
+				IsModifiedShadow: pre.IsModifiedShadow,
+			})
 		}
 		shadowID++
-		lastGenerated = &i
 	}
 
-	_, err = a.CollectionTasks.InsertMany(dbCtx, bulk)
-	if err != nil {
-		return fmt.Errorf("failed to insert new task series: %w", err)
+	if len(bulk) > 0 {
+		_, err = a.CollectionTasks.InsertMany(dbCtx, bulk)
+		if err != nil {
+			return fmt.Errorf("failed to insert new task series: %w", err)
+		}
 	}
 
-	// If task is a parent and atleast one parent shadow was generated, generate the children
-	if task.IsParent && lastGenerated != nil {
+	// If task is a parent and atleast one parent shadow could have been generated, generate the children
+	if task.IsParent && shadowID > startIndex {
 		tasks := []Task{}
 		res, err := a.CollectionTasks.Find(dbCtx, bson.M{"parentTask": task.ID, "userID": userID})
 		if err != nil {
@@ -423,8 +455,9 @@ func (a *MongoTaskActions) forceGenerateTaskSeries(ctx context.Context, seriesMa
 		if err != nil {
 			return fmt.Errorf("failed to decode children for master series task: %w", err)
 		}
+		lastShadow := (shadowID - 1)
 		for _, t := range tasks {
-			err := a.forceGenerateTaskSeries(ctx, t.ID, userID, lastGenerated, updateBehavior, startShadowID, overwriteModified, nil)
+			err := a.forceGenerateTaskSeries(ctx, t.ID, userID, &lastShadow, updateBehavior, startShadowID, overwriteModified, nil)
 			if err != nil {
 				return fmt.Errorf("child force generation failed: %w", err)
 			}
@@ -757,6 +790,9 @@ func (a *MongoTaskActions) UpdateTask(ctx context.Context, taskID, userID string
 			}
 			// Check if changed repeatDays need to be propagated to all children
 			if validated.RepeatDays != pre.RepeatDays {
+				if !req.OverwriteModified || req.UpdateCompleteSeries != BEHAVIOR_SeriesUpdate_All {
+					return nil, ErrModifyRepeatDaysWithoutOverwrite
+				}
 
 				dbCtx, cancel := context.WithTimeout(sessCtx, 2*time.Second)
 				defer cancel()
