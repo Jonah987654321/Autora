@@ -25,6 +25,7 @@ const (
 	COLNAME_Semesters  = "semesters"
 	COLNAME_Events     = "events"
 	COLNAME_Tasks      = "tasks"
+	COLNAME_Notes      = "notes"
 )
 
 var ErrConnectingInterrupted = errors.New("interrupt while establishing connection")
@@ -36,6 +37,7 @@ type AllCollections struct {
 	Semesters  *mongo.Collection
 	Events     *mongo.Collection
 	Tasks      *mongo.Collection
+	Notes      *mongo.Collection
 }
 
 func Init(cfg config.Database, quit <-chan os.Signal) (*mongo.Client, error) {
@@ -125,5 +127,6 @@ func GetAllCollections(db *mongo.Database) AllCollections {
 		Semesters:  db.Collection(COLNAME_Semesters),
 		Events:     db.Collection(COLNAME_Events),
 		Tasks:      db.Collection(COLNAME_Tasks),
+		Notes:      db.Collection(COLNAME_Notes),
 	}
 }
