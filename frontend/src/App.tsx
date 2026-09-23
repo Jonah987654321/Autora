@@ -11,6 +11,7 @@ import PageSemester from "./pages/PageSemesters";
 import { Toaster } from "./components/ui/sonner";
 import PageCourse from "./pages/PageCourse";
 import { TooltipProvider } from "./components/ui/tooltip";
+import PageEditor from "./pages/PageEditor";
 
 export default function App() {
   return (
@@ -41,6 +42,7 @@ export default function App() {
                 <Route path="/" element={<PageDashboard />} />
                 <Route path="/semesters" element={<PageSemester />} />
                 <Route path="/course/:courseId" element={<PageCourse />} />
+                <Route path="/editor" element={<PageEditor />} />
               </Route>
             </Route>
           </Routes>

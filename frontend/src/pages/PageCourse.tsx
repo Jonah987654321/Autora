@@ -84,7 +84,7 @@ export default function PageCourse() {
     try {
       const module = await getModule(courseId);
       setModuleData(module);
-      const semester = await getSemesterByID(module.semesterID);
+      const semester = await getSemesterByID(module!.semesterID);
       setSemesterData(semester);
     } catch (error) {
       const code = getErrorStatus(error);
