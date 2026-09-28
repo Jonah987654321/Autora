@@ -34,25 +34,45 @@ import {
   TrailingNode,
   UndoRedo,
 } from "@tiptap/extensions";
+import { EditorContent, useEditor } from "@tiptap/react";
 import {
-  EditorContent,
-  useEditor,
-  useEditorState,
-  type MarkType,
-  type NodeType,
-  type TextType,
-} from "@tiptap/react";
-import { BookOpenIcon, ChevronRightIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+  BookOpenIcon,
+  CircleCheck,
+  CircleX,
+  RotateCcw,
+  UnplugIcon,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { all, createLowlight } from "lowlight";
 import Mathematics from "@tiptap/extension-mathematics";
+import { Link, useParams } from "react-router";
+import { Spinner } from "@/components/ui/spinner";
+import { useTranslation } from "react-i18next";
+import { getNoteByID, updateNote } from "@/api/knowledge";
+import type ModuleData from "@/models/module";
+import type LectureNote from "@/models/note";
+import { getModule } from "@/api/academic";
+import { useDateLocale } from "@/hooks/use-dateLocale";
+import { format, isSameDay } from "date-fns";
+import RelativeTimeLabel from "@/components/ui/RelativeTimeLabel";
 
 export default function PageEditor() {
-  const [currentNotesHTML, setCurrentNotesHTML] = useState("");
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
 
+  // --- Data states
+  const [noteData, setNoteData] = useState<LectureNote | undefined>(undefined);
+  const [moduleData, setModuleData] = useState<ModuleData | undefined>(
+    undefined,
+  );
+  const lastInput = useRef(0);
+  // Indicator wether the summary is being edited or the real content
+  const [isSummaryMode, setIsSummaryMode] = useState(false);
+
+  // --- Init editor
   // Create lowlight code highlighting
   const codeblockHighlighting = createLowlight(all);
-
+  // Extensions
   const extensions = [
     // ALWAYS REQUIRED
     Document,
@@ -105,134 +125,339 @@ export default function PageEditor() {
   ];
   const editor = useEditor({
     extensions: extensions,
-    content: "hi",
     editorProps: {
       attributes: {
-        class: "w-full h-full outline-none",
+        class: "w-full h-full outline-none max-w-full [word-break:break-word] whitespace-pre-wrap",
       },
     },
-  });
+    onUpdate: ({ editor }) => {
+      if (noteData === undefined) return;
 
-  // --- Handle heading retrieval
-  const [headings, setHeadings] = useState<
-    NodeType<
-      string,
-      Record<string, any> | undefined,
-      any,
-      (NodeType<any, any, any, any> | TextType<MarkType<any, any>>)[]
-    >[]
-  >([]);
-  const editorState = useEditorState({
-    editor,
-    selector: ({ editor }) => {
-      if (!editor) return null;
-      return {
-        currentContent: editor.getJSON(),
-        currentHtml: editor.getHTML(),
-      };
+      if (isSummaryMode) {
+        setNoteData((prev) => ({ ...prev!, summary: editor.getJSON() }));
+      } else {
+        setNoteData((prev) => ({ ...prev!, content: editor.getJSON() }));
+      }
+      lastInput.current = Date.now();
+    },
+    onBlur: () => {
+      save();
     },
   });
 
+  // --- Handle loading the data
+  // state indicators
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+  // id from url
+  const { noteId } = useParams();
+  // state for loaded data
+  const loadData = async () => {
+    if (noteId === undefined) return;
+
+    setIsLoading(true);
+    setIsError(false);
+    try {
+      const data = await getNoteByID(noteId);
+      if (editor) {
+        editor.commands.setContent(data.content);
+      }
+      setNoteData(data);
+    } catch (error) {
+      console.error("failed to fetch note data: ", error);
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   useEffect(() => {
-    if (editorState === null) return;
-    setHeadings(
-      editorState.currentContent.content.filter((e) => e.type === "heading"),
-    );
-    setCurrentNotesHTML(editorState.currentHtml);
-  }, [editorState]);
+    loadData();
+  }, [noteId]);
+  // handle module loading
+  const loadModule = async () => {
+    if (noteData === undefined) return;
+
+    try {
+      const data = await getModule(noteData.moduleID);
+      setModuleData(data);
+    } catch (error) {
+      console.error("Failed to load module data: ", error);
+    }
+  };
+  useEffect(() => {
+    if (
+      noteData &&
+      (moduleData === undefined || moduleData.id !== noteData.moduleID)
+    ) {
+      loadModule();
+    }
+  }, [noteData]);
+
+  // --- Handle saving
+  const [isSaving, setIsSaving] = useState(false);
+  const [savingFailed, setSavingFailed] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | undefined>(undefined);
+  const lastSavedRef = useRef<Date | undefined>(undefined);
+  const save = async () => {
+    const data = latestNoteData.current;
+    if (!data) return;
+    setIsSaving(true);
+    setSavingFailed(false);
+    try {
+      await updateNote(
+        data.id,
+        data.moduleID,
+        data.title,
+        new Date(data.start),
+        new Date(data.end),
+        data.content,
+        data.summary,
+        data.summaryDone,
+      );
+      const now = new Date(Date.now());
+      setLastSaved(now);
+      lastSavedRef.current = now;
+    } catch (error) {
+      console.error("saving failed: ", error);
+      setSavingFailed(true);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // --- Handle unmount / tab close
+  // Safe state in ref
+  const latestNoteData = useRef(noteData);
+  useEffect(() => {
+    latestNoteData.current = noteData;
+  }, [noteData]);
+  // save on unload -> saving without ui state updating
+  const saveOnUnload = () => {
+    const data = latestNoteData.current;
+    if (!data) return;
+    updateNote(
+      data.id,
+      data.moduleID,
+      data.title,
+      new Date(data.start),
+      new Date(data.end),
+      data.content,
+      data.summary,
+      data.summaryDone,
+    ).catch((err) => console.error("Unload save failed:", err));
+  };
+  useEffect(() => {
+    // Save on closing tab/ browser window
+    window.addEventListener("beforeunload", saveOnUnload);
+
+    // Save on unmount (e.g. navigation)
+    return () => {
+      window.removeEventListener("beforeunload", saveOnUnload);
+      saveOnUnload();
+    };
+  }, []);
+
+  // --- Handle auto-saving
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      const lastSavedData = lastSavedRef.current;
+
+      const now = Date.now();
+      if (
+        lastInput.current > 0 && (
+        lastSavedData === undefined ||
+        (lastInput.current > lastSavedData.getTime() &&
+          (now - lastInput.current >= 5000 ||
+            now - lastSavedData.getTime() >= 60000)))
+      ) {
+        save();
+      }
+    }, 1000);
+
+    return () => clearInterval(autoSaveInterval);
+  }, []);
+
+  // --- Handle Ctrl+S / Cmd+S Shortcut
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault(); // Prevent "Save as html dialog"
+        save();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const headingsList =
+    noteData?.content?.content?.filter((e) => e.type === "heading") || [];
 
   return (
     <>
-      <div className="flex w-full h-dvh">
-        <div className="flex-1 flex flex-col px-10 pt-10">
-          <div>
-            <div className="space-x-2">
-              <Badge>
-                <BookOpenIcon data-icon="inline-start" />
-                Maths
-              </Badge>
-              <Badge variant="secondary">Vorlesung 21</Badge>
-            </div>
-            <Input
-              className="bg-transparent border-none rounded-none ring-0! p-0 text-3xl! pt-2 h-14"
-              placeholder="Gib der Vorlesung einen Titel"
-            />
-            <div className="text-muted-foreground text-sm">
-              16. September 2026 <SeperatorDot /> 14:00-14:30
-            </div>
+      {isLoading && (
+        <div className="w-full h-dvh flex items-center justify-center">
+          <Spinner />
+        </div>
+      )}
+      {!isLoading && isError && (
+        <div className="w-full h-dvh flex flex-col items-center justify-center text-destructive">
+          <UnplugIcon className="size-16 stroke-1" />
+          <div className="text-2xl mt-10">
+            {t("notes.editor.loadingFailed.title")}
           </div>
-          <div className="pt-6">
-            <MenuBar editor={editor} />
+          <div className="text-muted-foreground">
+            {t("notes.editor.loadingFailed.description")}
           </div>
-          <EditorContent editor={editor} className=" w-full flex-1 pt-2 px-2" />
-          <div className="py-4">
-            <div className="flex items-center">
-              <Button variant="ghost" className="w-full justify-start py-2">
-                <ChevronRightIcon /> Zusammenfassung
-              </Button>
-            </div>
+          <div className="mt-5">
+            <Button variant="secondary" onClick={loadData}>
+              <RotateCcw />
+              {t("notes.editor.loadingFailed.retry")}
+            </Button>
           </div>
         </div>
-        <div className="bg-muted/50 border-l border-border px-5 w-60 pt-10">
-          <div>
-            <div className="text-lg font-bold flex items-center gap-x-1">
-              Gliederung
-            </div>
+      )}
+      {!isLoading && !isError && noteData && (
+        <div className="flex w-full h-dvh">
+          <div className="flex-1 flex flex-col px-10 pt-10 min-h-0 min-w-0">
             <div>
-              {headings.length === 0 ? (
-                <div className="text-sm text-muted-foreground">
-                  Füge Überschriften hinzu um die Gliederung zu sehen
-                </div>
-              ) : (
-                headings.map((e, index) => {
-                  let textContent;
-                  if (!e.content) {
-                    textContent = "Unnamed section";
-                  } else {
-                    textContent = e.content
-                      .map((node: any) => node.text || "")
-                      .join("");
-                  }
-
-                  const padMap: Record<number, string> = {
-                    1: "pl-2",
-                    2: "text-sm pl-5",
-                    3: "text-sm pl-8",
-                    4: "text-sm pl-8",
-                    5: "text-sm pl-8",
-                    6: "text-sm pl-8",
-                  };
-
-                  return (
-                    <div
-                      key={index}
-                      className={cn(
-                        "border-border border-l-3 truncate text-muted-foreground cursor-pointer hover:text-blue-400 hover:border-blue-400",
-                        padMap[e.attrs ? e.attrs.level : 1],
-                      )}
-                    >
-                      {textContent}
-                    </div>
-                  );
-                })
-              )}
+              <div className="space-x-2">
+                <Link to={`/course/${noteData.moduleID}`}>
+                  <Badge>
+                    <BookOpenIcon data-icon="inline-start" />
+                    {moduleData !== undefined ? moduleData.name : <Spinner />}
+                  </Badge>
+                </Link>
+                <Badge variant="secondary">
+                  {t("notes.editor.lecture", { nr: noteData.nr })}
+                </Badge>
+              </div>
+              <Input
+                className="bg-transparent border-none rounded-none ring-0! p-0 text-3xl! pt-2 h-14"
+                placeholder={t("notes.editor.emptyTitlePlaceholder")}
+                value={noteData.title}
+                onChange={(e) => {
+                  setNoteData((prev) => ({ ...prev!, title: e.target.value }));
+                  lastInput.current = Date.now();
+                }}
+                onBlur={save}
+              />
+              <div className="text-muted-foreground text-sm">
+                {isSameDay(noteData.start, noteData.end) ? (
+                  <>
+                    {format(noteData.start, "PPP", { locale: dateLocale })}{" "}
+                    <SeperatorDot />{" "}
+                    {noteData.start !== noteData.end
+                      ? `${format(noteData.start, "p", { locale: dateLocale })} - ${format(noteData.end, "p", { locale: dateLocale })}`
+                      : format(noteData.start, "p", { locale: dateLocale })}
+                  </>
+                ) : (
+                  `${format(noteData.start, "PPPp", { locale: dateLocale })} - ${format(noteData.end, "PPPp", { locale: dateLocale })}`
+                )}
+              </div>
+            </div>
+            <div className="pt-6">
+              <MenuBar editor={editor} />
+            </div>
+            <EditorContent
+              editor={editor}
+              className="w-full flex-1 pt-2 px-2 min-h-0 overflow-y-auto min-w-0 overflow-x-hidden"
+            />
+            <div className="bg-muted text-sm p-2 rounded-t-lg flex px-4">
+              <div
+                className={cn(
+                  "flex justify-end items-center flex-1 gap-x-1",
+                  isSaving
+                    ? ""
+                    : savingFailed
+                      ? "text-destructive"
+                      : "text-green-600",
+                )}
+              >
+                {isSaving ? (
+                  <>
+                    <Spinner className="size-4" />{" "}
+                    {t("notes.editor.saveStates.saving")}
+                  </>
+                ) : savingFailed ? (
+                  <>
+                    <CircleX className="size-4" />{" "}
+                    {t("notes.editor.saveStates.failed")}
+                  </>
+                ) : (
+                  <>
+                    <CircleCheck className="size-4" />{" "}
+                    {t("notes.editor.saveStates.saved")}{" "}
+                    {lastSaved && <RelativeTimeLabel date={lastSaved} />}
+                  </>
+                )}
+              </div>
             </div>
           </div>
-          <div className="pt-10">
-            <div className="text-lg font-bold flex items-center gap-x-1">
-              Karteikarten
+          <div className="bg-muted/50 border-l border-border px-5 w-60 pt-10">
+            <div>
+              <div className="text-lg font-bold flex items-center gap-x-1">
+                {t("notes.editor.outline")}
+              </div>
+              <div>
+                {headingsList.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">
+                    {t("notes.editor.outlineEmpty")}
+                  </div>
+                ) : (
+                  headingsList.map((e, index) => {
+                    let textContent;
+                    if (!e.content) {
+                      textContent = t("notes.editor.outlineEmptyHeading");
+                    } else {
+                      textContent = e.content
+                        .map((node: any) => node.text || "")
+                        .join("");
+                    }
+
+                    const padMap: Record<number, string> = {
+                      1: "pl-2",
+                      2: "text-sm pl-5",
+                      3: "text-sm pl-8",
+                      4: "text-sm pl-8",
+                      5: "text-sm pl-8",
+                      6: "text-sm pl-8",
+                    };
+
+                    return (
+                      <div
+                        key={index}
+                        className={cn(
+                          "border-border border-l-3 truncate text-muted-foreground cursor-pointer hover:text-blue-400 hover:border-blue-400",
+                          padMap[e.attrs ? e.attrs.level : 1],
+                        )}
+                      >
+                        {textContent}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
-            <div className="text-muted-foreground text-sm">
-              Noch keine Karteikarten erstellt
-            </div>
-            <div className="pt-3">
-              <Button className="w-full" variant="outline">
-                Karteikarte erstellen
-              </Button>
+            <div className="pt-10">
+              <div className="text-lg font-bold flex items-center gap-x-1">
+                {t("notes.flashcards.title")}
+              </div>
+              <div className="text-muted-foreground text-sm">
+                {t("notes.flashcards.empty")}
+              </div>
+              <div className="pt-3">
+                <Button className="w-full" variant="outline">
+                  {t("notes.flashcards.create")}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

@@ -281,5 +281,37 @@
     "title": "Transfer to another semester",
     "placeholderDestinationSelect": "Select a destination semester",
     "action": "Transfer"
+  },
+  "notes": {
+    "list": {
+      "empty": "It looks like you haven't really written anything down yet",
+      "emptyAction": "Start being productive",
+      "creationFailed": "Failed to create new lecture note",
+      "summaryOpen": "Not yet summarized",
+      "unnamedLecture": "Unnamed lecture",
+      "addNew": "Add new lecture note"
+    },
+    "editor": {
+      "loadingFailed": {
+        "title": "It seems like someone pulled the plug",
+        "description": "The lecture note you requested could not be loaded",
+        "retry": "Retry"
+      },
+      "lecture": "Lecture {{nr}}",
+      "emptyTitlePlaceholder": "Give this lecture a title",
+      "saveStates": {
+        "saving": "Saving...",
+        "failed": "Saving failed",
+        "saved": "Saved"
+      },
+      "outline": "Outline",
+      "outlineEmpty": "Add headings to see the outline",
+      "outlineEmptyHeading": "Unnamed section"
+    },
+    "flashcards": {
+      "title": "Flashcards",
+      "empty": "No flashcards created yet",
+      "create": "Create new"
+    }
   }
 }

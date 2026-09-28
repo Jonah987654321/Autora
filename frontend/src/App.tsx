@@ -42,7 +42,7 @@ export default function App() {
                 <Route path="/" element={<PageDashboard />} />
                 <Route path="/semesters" element={<PageSemester />} />
                 <Route path="/course/:courseId" element={<PageCourse />} />
-                <Route path="/editor" element={<PageEditor />} />
+                <Route path="/editor/:noteId" element={<PageEditor />} />
               </Route>
             </Route>
           </Routes>

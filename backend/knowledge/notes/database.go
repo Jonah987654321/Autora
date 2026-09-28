@@ -345,13 +345,13 @@ func (a *NoteActionsMongo) GetNotesByModuleID(ctx context.Context, userID, modul
 	defer cancel()
 
 	notes := []Note{}
-	err = a.CollectionNotes.FindOne(dbCtx, bson.M{"moduleID": moduleObjectID, "userID": userObjectId}).Decode(&notes)
+	res, err := a.CollectionNotes.Find(dbCtx, bson.M{"moduleID": moduleObjectID, "userID": userObjectId}, options.Find().SetSort(bson.D{{Key: "nr", Value: -1}}))
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrNoSuchNote
-		}
-
-		return nil, fmt.Errorf("failed to fetch/decode task: %w", err)
+		return nil, fmt.Errorf("failed to fetch tasks: %w", err)
+	}
+	err = res.All(dbCtx, &notes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode tasks: %w", err)
 	}
 
 	return notes, nil

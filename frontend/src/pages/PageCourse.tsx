@@ -37,12 +37,15 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { NavLink, useParams } from "react-router";
+import { NavLink, useNavigate, useParams } from "react-router";
 import { format } from "date-fns";
 import { useDateLocale } from "@/hooks/use-dateLocale";
 import TodoList from "@/components/specific/todos/display/TodoList";
 import { getOpenTodosForModule } from "@/api/productivity";
 import TodoDialog from "@/components/specific/todos/util/TodoDialog";
+import NoteList from "@/components/specific/NoteList";
+import { createNote } from "@/api/knowledge";
+import { toast } from "sonner";
 
 interface courseMetatagProps {
   content: string;
@@ -60,6 +63,8 @@ export default function PageCourse() {
   const { courseId } = useParams();
   const { t } = useTranslation();
   const dateLocale = useDateLocale();
+
+  const navigate = useNavigate();
 
   const [noCourseError, setNoCourseError] = useState(false);
   const [serverError, setServerError] = useState(false);
@@ -101,6 +106,26 @@ export default function PageCourse() {
   useEffect(() => {
     fetchCourse();
   }, []);
+
+  const createNewLectureNote = async () => {
+    if (courseId === undefined) return;
+    try {
+      const newNote = await createNote(
+        courseId,
+        "",
+        new Date(Date.now()),
+        new Date(Date.now()),
+      );
+      navigate(`../editor/${newNote.id}`, {relative: "route"});
+    } catch (error) {
+      toast.error(
+        t("notes.list.creationFailed", {
+          description: t("common.internalServerError"),
+        }),
+      );
+      console.log("Failed to create new lecture note: ", error);
+    }
+  };
 
   return (
     <>
@@ -282,16 +307,19 @@ export default function PageCourse() {
                     ></CardActionHeader>
                   </Card>
                 </div>
-                <div className="flex-1">
-                  <Card className="h-full rounded-xl">
+                <div className="flex-1 min-h-0">
+                  <Card className="h-full flex flex-col rounded-xl">
                     <CardActionHeader
                       title={t("course.cards.lectureNotes")}
                       action={
-                        <Button size="icon-lg" variant="outline">
+                        <Button size="icon-lg" variant="outline" onClick={createNewLectureNote}>
                           <NotebookPen />
                         </Button>
                       }
                     ></CardActionHeader>
+                    <CardContent className="flex-1 min-h-0 p-0">
+                      {courseId && <NoteList moduleID={courseId} onCreateNew={createNewLectureNote}/>}
+                    </CardContent>
                   </Card>
                 </div>
               </div>
@@ -301,9 +329,12 @@ export default function PageCourse() {
                     <CardActionHeader
                       title={t("course.cards.toDoList")}
                       action={
-                        <TodoDialog createTodosInModule={courseId} onRefreshRequired={() =>
+                        <TodoDialog
+                          createTodosInModule={courseId}
+                          onRefreshRequired={() =>
                             setTodoRefreshTrigger((prev) => prev + 1)
-                          }>
+                          }
+                        >
                           <Button size="icon-lg" variant="outline">
                             <Plus />
                           </Button>

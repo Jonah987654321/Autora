@@ -84,7 +84,7 @@ export default function EventList({
           <div>{t("common.internalServerError")}</div>
         </div>
       )}
-      {!loading && events.length == 0 && (
+      {!loading && !serverError && events.length == 0 && (
         <div className="h-full flex flex-col items-center justify-center gap-y-4 text-muted-foreground">
           <div>
             <CalendarOff className="size-10 stroke-1" />
@@ -103,7 +103,7 @@ export default function EventList({
         </div>
       )}
       {!loading && events.length > 0 && (
-        <ScrollArea>
+        <ScrollArea className="h-full">
           <div className="divide-y divide-border px-2">
             {events.map((e) => {
               return (
@@ -116,7 +116,7 @@ export default function EventList({
                     >
                       <div className="flex items-center gap-4 py-2 min-w-0 cursor-pointer hover:bg-muted hover:rounded-md transition-colors">
                         {/* Date block */}
-                        <div className="flex flex-col items-center justify-center bg-muted rounded-md min-w-[3.5rem] py-1.5 px-2 shrink-0">
+                        <div className="flex flex-col items-center justify-center bg-muted rounded-md min-w-14 py-1.5 px-2 shrink-0">
                           <span className="text-lg font-semibold leading-none">
                             {format(e.start, "dd")}
                           </span>
