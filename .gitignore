@@ -4,3 +4,4 @@ plan.txt
 .vscode/
 docker/mongodb/mongo-keyfile
 data/
+docker-compose.override.yml
