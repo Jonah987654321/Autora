@@ -72,7 +72,7 @@ export default function PageEditor() {
   );
   const lastInput = useRef(0);
   // Indicator wether the summary is being edited or the real content
-  const [isSummaryMode, setIsSummaryMode] = useState(false);
+  const [isSummaryMode, _] = useState(false);
   // Math Input control
   type MathDialogState = {
     open: boolean;
