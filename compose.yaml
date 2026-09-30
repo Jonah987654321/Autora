@@ -21,6 +21,23 @@ x-database-template: &db-template
     - ./docker/mongodb/init.js:/docker-entrypoint-initdb.d/init.js:ro
     # Keyfile for replica sets
     - ./docker/mongodb/mongo-keyfile:/etc/mongo-keyfile:ro
+  healthcheck:
+    test:
+      - CMD-SHELL
+      - >
+        mongosh --quiet -u admin -p "$$MONGO_INITDB_ROOT_PASSWORD"
+        --authenticationDatabase admin --eval "
+        try { quit(rs.status().ok === 1 ? 0 : 1); }
+        catch (e) {
+          if (e.codeName === 'NotYetInitialized') {
+            rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongodb_host:27017'}]});
+          }
+          quit(1);
+        }"
+    interval: 5s
+    timeout: 10s
+    retries: 20
+    start_period: 20s
 
 x-backend-template: &backend-template
   env_file:
@@ -75,7 +92,8 @@ services:
       target: production
     restart: unless-stopped
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
   # for development, hot-reload
   backend-dev:
     <<: *backend-template
@@ -84,7 +102,8 @@ services:
       context: ./backend
       target: development
     depends_on:
-      - mongodb-dev
+      mongodb-dev:
+        condition: service_healthy
     volumes:
       - ./backend:/app
 
