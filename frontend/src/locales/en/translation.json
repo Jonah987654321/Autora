@@ -306,7 +306,15 @@
       },
       "outline": "Outline",
       "outlineEmpty": "Add headings to see the outline",
-      "outlineEmptyHeading": "Unnamed section"
+      "outlineEmptyHeading": "Unnamed section",
+      "emptyPlaceholder": "Start taking notes...",
+      "mathInput": {
+        "title": "Enter your formula",
+        "labelInput": "Formula",
+        "labelPreview": "Preview",
+        "buttonInsert": "Insert",
+        "buttonUpdate": "Update"
+      }
     },
     "flashcards": {
       "title": "Flashcards",

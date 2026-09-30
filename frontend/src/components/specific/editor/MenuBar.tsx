@@ -23,12 +23,16 @@ import {
   Sigma,
   SquareSigma,
 } from "lucide-react";
-import MathInput from "./MathInput.tsx";
-import { useState } from "react";
 
 const Divider = () => <div className="w-px h-6 bg-border mx-1" />;
 
-export const MenuBar = ({ editor }: { editor: Editor | null }) => {
+export const MenuBar = ({
+  editor,
+  onInsertMath,
+}: {
+  editor: Editor | null;
+  onInsertMath: (isBlock: boolean) => void;
+}) => {
   if (!editor) {
     return null;
   }
@@ -37,9 +41,6 @@ export const MenuBar = ({ editor }: { editor: Editor | null }) => {
     editor,
     selector: menuBarStateSelector,
   });
-
-  // Math Input control
-  const [mathInputOpen, setMathInputOpen] = useState(false);
 
   return (
     <>
@@ -224,16 +225,30 @@ export const MenuBar = ({ editor }: { editor: Editor | null }) => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          title="Trennlinie"
+          onClick={() => {
+            if (editorState.isMathInline)
+              editor.chain().focus().deleteSelection().run();
+            else onInsertMath(false);
+          }}
+          className={
+            editorState.isMathInline ? "bg-accent text-accent-foreground" : ""
+          }
+          title="Inline-Mathe"
         >
           <Sigma className="w-4 h-4" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          title="Trennlinie"
+          onClick={() => {
+            if (editorState.isMathBlock)
+              editor.chain().focus().deleteSelection().run();
+            else onInsertMath(true);
+          }}
+          className={
+            editorState.isMathBlock ? "bg-accent text-accent-foreground" : ""
+          }
+          title="Matheblock"
         >
           <SquareSigma className="w-4 h-4" />
         </Button>
@@ -258,11 +273,6 @@ export const MenuBar = ({ editor }: { editor: Editor | null }) => {
           <Redo className="w-4 h-4" />
         </Button>
       </div>
-      <MathInput
-        open={mathInputOpen}
-        onOpenChange={setMathInputOpen}
-        onSubmit={(content: string) => {}}
-      />
     </>
   );
 };

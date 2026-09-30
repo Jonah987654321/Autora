@@ -30,7 +30,9 @@ import Underline from "@tiptap/extension-underline";
 import UniqueID from "@tiptap/extension-unique-id";
 import {
   Dropcursor,
+  Focus,
   Gapcursor,
+  Placeholder,
   TrailingNode,
   UndoRedo,
 } from "@tiptap/extensions";
@@ -39,6 +41,7 @@ import {
   BookOpenIcon,
   CircleCheck,
   CircleX,
+  GripVertical,
   RotateCcw,
   UnplugIcon,
 } from "lucide-react";
@@ -55,6 +58,8 @@ import { getModule } from "@/api/academic";
 import { useDateLocale } from "@/hooks/use-dateLocale";
 import { format, isSameDay } from "date-fns";
 import RelativeTimeLabel from "@/components/ui/RelativeTimeLabel";
+import MathInput from "@/components/specific/editor/MathInput";
+import DragHandle from "@tiptap/extension-drag-handle-react";
 
 export default function PageEditor() {
   const { t } = useTranslation();
@@ -68,6 +73,22 @@ export default function PageEditor() {
   const lastInput = useRef(0);
   // Indicator wether the summary is being edited or the real content
   const [isSummaryMode, setIsSummaryMode] = useState(false);
+  // Math Input control
+  type MathDialogState = {
+    open: boolean;
+    isBlock: boolean;
+    mode: "insert" | "update";
+    latex: string;
+    pos?: number;
+  };
+  const [mathDialog, setMathDialog] = useState<MathDialogState>({
+    open: false,
+    isBlock: false,
+    mode: "insert",
+    latex: "",
+  });
+  const openMathInsert = (isBlock: boolean) =>
+    setMathDialog({ open: true, isBlock, mode: "insert", latex: "" });
 
   // --- Init editor
   // Create lowlight code highlighting
@@ -93,6 +114,12 @@ export default function PageEditor() {
     }),
     Blockquote,
     HorizontalRule,
+    Placeholder.configure({
+      placeholder: t("notes.editor.emptyPlaceholder"),
+    }),
+    Focus.configure({
+      mode: "deepest",
+    }),
 
     // Give every node a unique id
     UniqueID,
@@ -113,13 +140,24 @@ export default function PageEditor() {
     // Support for maths rendering LaTeX using KaTeX
     Mathematics.configure({
       inlineOptions: {
-        // optional options for the inline math node
+        onClick: (node, pos) =>
+          setMathDialog({
+            open: true,
+            isBlock: false,
+            mode: "update",
+            latex: node.attrs.latex,
+            pos,
+          }),
       },
       blockOptions: {
-        // optional options for the block math node
-      },
-      katexOptions: {
-        // optional options for the KaTeX renderer
+        onClick: (node, pos) =>
+          setMathDialog({
+            open: true,
+            isBlock: true,
+            mode: "update",
+            latex: node.attrs.latex,
+            pos,
+          }),
       },
     }),
   ];
@@ -127,7 +165,8 @@ export default function PageEditor() {
     extensions: extensions,
     editorProps: {
       attributes: {
-        class: "w-full h-full outline-none max-w-full [word-break:break-word] whitespace-pre-wrap",
+        class:
+          "w-full h-full outline-none max-w-full [word-break:break-word] whitespace-pre-wrap",
       },
     },
     onUpdate: ({ editor }) => {
@@ -264,11 +303,11 @@ export default function PageEditor() {
 
       const now = Date.now();
       if (
-        lastInput.current > 0 && (
-        lastSavedData === undefined ||
-        (lastInput.current > lastSavedData.getTime() &&
-          (now - lastInput.current >= 5000 ||
-            now - lastSavedData.getTime() >= 60000)))
+        lastInput.current > 0 &&
+        (lastSavedData === undefined ||
+          (lastInput.current > lastSavedData.getTime() &&
+            (now - lastInput.current >= 5000 ||
+              now - lastSavedData.getTime() >= 60000)))
       ) {
         save();
       }
@@ -280,10 +319,17 @@ export default function PageEditor() {
   // --- Handle Ctrl+S / Cmd+S Shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault(); // Prevent "Save as html dialog"
         save();
       }
+
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.code === "KeyE") {
+        e.preventDefault();
+        openMathInsert(false);
+        return true;
+      }
+      return false;
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -292,6 +338,23 @@ export default function PageEditor() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  // Handle scrolling for outline
+  const scrollToHeading = (index: number) => {
+  if (!editor) return;
+
+  const headings = editor.view.dom.querySelectorAll<HTMLElement>(
+    ":scope > h1, :scope > h2, :scope > h3",
+  );
+  const el = headings[index];
+  if (!el) return;
+
+  // Cursor on start of heading, without tiptap scrolling
+  const pos = editor.view.posAtDOM(el, 0);
+  editor.chain().focus(null, { scrollIntoView: false }).setTextSelection(pos).run();
+
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
   const headingsList =
     noteData?.content?.content?.filter((e) => e.type === "heading") || [];
@@ -360,12 +423,18 @@ export default function PageEditor() {
               </div>
             </div>
             <div className="pt-6">
-              <MenuBar editor={editor} />
+              <MenuBar onInsertMath={openMathInsert} editor={editor} />
             </div>
             <EditorContent
               editor={editor}
-              className="w-full flex-1 pt-2 px-2 min-h-0 overflow-y-auto min-w-0 overflow-x-hidden"
+              className="w-full flex-1 pt-2 px-3 min-h-0 overflow-y-auto min-w-0 overflow-x-hidden"
             />
+            <DragHandle
+              editor={editor}
+              className="cursor-pointer translate-y-2"
+            >
+              <GripVertical className="size-4" />
+            </DragHandle>
             <div className="bg-muted text-sm p-2 rounded-t-lg flex px-4">
               <div
                 className={cn(
@@ -430,6 +499,7 @@ export default function PageEditor() {
                     return (
                       <div
                         key={index}
+                        onClick={() => scrollToHeading(index)}
                         className={cn(
                           "border-border border-l-3 truncate text-muted-foreground cursor-pointer hover:text-blue-400 hover:border-blue-400",
                           padMap[e.attrs ? e.attrs.level : 1],
@@ -458,6 +528,24 @@ export default function PageEditor() {
           </div>
         </div>
       )}
+      <MathInput
+        open={mathDialog.open}
+        onOpenChange={(open) => setMathDialog((p) => ({ ...p, open }))}
+        mode={mathDialog.mode}
+        initialData={mathDialog.latex}
+        onSubmit={(latex) => {
+          if (!editor) return;
+          const { isBlock, mode, pos } = mathDialog;
+          if (mode === "update") {
+            if (isBlock) editor.commands.updateBlockMath({ latex, pos });
+            else editor.commands.updateInlineMath({ latex, pos });
+          } else {
+            const chain = editor.chain().focus();
+            if (isBlock) chain.insertBlockMath({ latex }).run();
+            else chain.insertInlineMath({ latex }).run();
+          }
+        }}
+      />
     </>
   );
 }
