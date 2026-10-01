@@ -42,6 +42,7 @@ import {
   CircleCheck,
   CircleX,
   GripVertical,
+  HashIcon,
   RotateCcw,
   UnplugIcon,
 } from "lucide-react";
@@ -395,6 +396,7 @@ export default function PageEditor() {
                   </Badge>
                 </Link>
                 <Badge variant="secondary">
+                  <HashIcon data-icon="inline-start" />
                   {t("notes.editor.lecture", { nr: noteData.nr })}
                 </Badge>
               </div>

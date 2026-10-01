@@ -99,7 +99,7 @@ export default function NoteList({
           <div>
             <GhostIcon className="size-10 stroke-1" />
           </div>
-          <div className="text-base">{t("notes.list.empty")}</div>
+          <div className="text-base px-2 text-center">{t("notes.list.empty")}</div>
           {onCreateNew && (
             <Button className="mt-2" variant="secondary" onClick={onCreateNew}>
               <BrainIcon />
