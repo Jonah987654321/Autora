@@ -22,19 +22,19 @@ interface KatexDisplayProps {
   data: string;
 }
 
-function KatexDisplay({data}: KatexDisplayProps) {
+function KatexDisplay({ data }: KatexDisplayProps) {
   const displayRef = useRef(null);
 
   useEffect(() => {
-      if (displayRef.current) {
-        katex;
-        katex.render(data, displayRef.current, {
-          throwOnError: false,
-        });
-      }
+    if (displayRef.current) {
+      katex;
+      katex.render(data, displayRef.current, {
+        throwOnError: false,
+      });
+    }
   }, [data]);
 
-  return <span ref={displayRef} />
+  return <span ref={displayRef} />;
 }
 
 interface MathInputProps {
@@ -42,7 +42,7 @@ interface MathInputProps {
   onOpenChange: (state: boolean) => void;
   onSubmit: (content: string) => void;
   initialData?: string;
-  mode: "update" | "insert"
+  mode: "update" | "insert";
 }
 
 export default function MathInput({
@@ -50,9 +50,9 @@ export default function MathInput({
   onOpenChange,
   onSubmit,
   initialData,
-  mode
+  mode,
 }: MathInputProps) {
-  const {t} = useTranslation();
+  const { t } = useTranslation();
 
   const [data, setData] = useState("");
 
@@ -63,11 +63,18 @@ export default function MathInput({
   const handleSubmit = () => {
     onSubmit(data);
     onOpenChange(false);
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent
+        onInteractOutside={(e) => {
+          if (data !== "") e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (data !== "") e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{t("notes.editor.mathInput.title")}</DialogTitle>
         </DialogHeader>
@@ -99,11 +106,10 @@ export default function MathInput({
           </FieldContent>
         </Field>
         <DialogFooter>
-          <Button
-            onClick={handleSubmit}
-            disabled={data === ""}
-          >
-            {mode == "update" ? t("notes.editor.mathInput.buttonUpdate") : t("notes.editor.mathInput.buttonInsert")}
+          <Button onClick={handleSubmit} disabled={data === ""}>
+            {mode == "update"
+              ? t("notes.editor.mathInput.buttonUpdate")
+              : t("notes.editor.mathInput.buttonInsert")}
           </Button>
         </DialogFooter>
       </DialogContent>
