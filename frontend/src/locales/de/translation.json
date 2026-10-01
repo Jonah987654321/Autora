@@ -281,5 +281,45 @@
       "overwriteLabelDelete": "Geänderte Aufgaben in der Serie löschen",
       "title": "Änderungsverhalten auswählen"
     }
+  },
+  "notes": {
+    "editor": {
+      "emptyPlaceholder": "Beginne dir Notizen zu machen...",
+      "emptyTitlePlaceholder": "Gib der Vorlesung einen Titel",
+      "lecture": "Vorlesung {{nr}}",
+      "loadingFailed": {
+        "description": "Die Mitschrift die du laden willst konnte nicht geladen werden",
+        "retry": "Erneut versuchen",
+        "title": "Es scheint als hätte jemand den Stecker gezogen"
+      },
+      "mathInput": {
+        "buttonInsert": "Einfügen",
+        "buttonUpdate": "Änderungen speichern",
+        "labelInput": "Formel",
+        "labelPreview": "Vorschau",
+        "title": "Gib deine Formel ein"
+      },
+      "outline": "Gliederung",
+      "outlineEmpty": "Füge Überschriften hinzu um die Gliederung zu sehen",
+      "outlineEmptyHeading": "Unbenannter Abschnitt",
+      "saveStates": {
+        "failed": "Speichern fehlgeschlagen",
+        "saved": "Gespeichert",
+        "saving": "Speichern..."
+      }
+    },
+    "flashcards": {
+      "create": "Neue erstellen",
+      "empty": "Noch keine Karteikarten erstellt",
+      "title": "Karteikarten"
+    },
+    "list": {
+      "addNew": "Neue Vorlesungsmitschrift erstellen",
+      "creationFailed": "Erstellen der neuen Vorlesungsmitschrift fehlgeschlagen",
+      "empty": "E scheint als hättest du dir noch keine Notizen gemacht",
+      "emptyAction": "Starte produktiv zu sein",
+      "summaryOpen": "Noch nicht zusammengefasst",
+      "unnamedLecture": "Unbenannte Mitschrift"
+    }
   }
 }
