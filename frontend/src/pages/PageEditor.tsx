@@ -243,6 +243,11 @@ export default function PageEditor() {
   const [savingFailed, setSavingFailed] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | undefined>(undefined);
   const lastSavedRef = useRef<Date | undefined>(undefined);
+  const inSaveFailRetry = useRef(false);
+  const saveFailRetryNo = useRef(0);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const save = async () => {
     const data = latestNoteData.current;
     if (!data) return;
@@ -262,9 +267,21 @@ export default function PageEditor() {
       const now = new Date(Date.now());
       setLastSaved(now);
       lastSavedRef.current = now;
+      inSaveFailRetry.current = false;
+      saveFailRetryNo.current = 0;
     } catch (error) {
       console.error("saving failed: ", error);
       setSavingFailed(true);
+      inSaveFailRetry.current = true;
+      saveFailRetryNo.current += 1;
+      // Use exponential backoff with max and jitter for retry timing
+      const cap = Math.min(30000, 1000 * Math.pow(2, saveFailRetryNo.current));
+      const baseWait = cap / 2;
+      const jitter = Math.random() * baseWait;
+      const waitTime = baseWait + jitter;
+      retryTimeoutRef.current = setTimeout(() => {
+        save();
+      }, waitTime);
     } finally {
       setIsSaving(false);
     }
@@ -277,7 +294,12 @@ export default function PageEditor() {
     latestNoteData.current = noteData;
   }, [noteData]);
   // save on unload -> saving without ui state updating
-  const saveOnUnload = () => {
+  const saveOnUnload = (e?: BeforeUnloadEvent) => {
+    if (e && inSaveFailRetry.current) {
+      e.preventDefault();
+      return;
+    }
+
     const data = latestNoteData.current;
     if (!data) return;
     updateNote(
@@ -298,6 +320,11 @@ export default function PageEditor() {
     // Save on unmount (e.g. navigation)
     return () => {
       window.removeEventListener("beforeunload", saveOnUnload);
+
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+
       saveOnUnload();
     };
   }, []);
@@ -305,6 +332,8 @@ export default function PageEditor() {
   // --- Handle auto-saving
   useEffect(() => {
     const autoSaveInterval = setInterval(() => {
+      if (inSaveFailRetry.current) return;
+
       const lastSavedData = lastSavedRef.current;
 
       const now = Date.now();
@@ -327,6 +356,8 @@ export default function PageEditor() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault(); // Prevent "Save as html dialog"
+
+        if (inSaveFailRetry.current) return;
         save();
       }
 
