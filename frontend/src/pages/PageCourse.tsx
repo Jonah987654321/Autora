@@ -46,6 +46,7 @@ import TodoDialog from "@/components/specific/todos/util/TodoDialog";
 import NoteList from "@/components/specific/NoteList";
 import { createNote } from "@/api/knowledge";
 import { toast } from "sonner";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 interface courseMetatagProps {
   content: string;
@@ -72,6 +73,8 @@ export default function PageCourse() {
 
   const [moduleData, setModuleData] = useState<ModuleData | undefined>();
   const [semesterData, setSemesterData] = useState<SemesterData | undefined>();
+
+  useDocumentTitle(`${moduleData ? moduleData.name + " - " : ""}${t("pageTitles.course")}`)
 
   const [eventRefreshTrigger, setEventRefreshTrigger] = useState(0);
   const [todoRefreshTrigger, setTodoRefreshTrigger] = useState(0);

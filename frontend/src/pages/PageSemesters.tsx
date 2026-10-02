@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/input-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import type SemesterData from "@/models/semester";
 import axios from "axios";
 import {
@@ -24,6 +25,8 @@ import { useTranslation } from "react-i18next";
 
 export default function PageSemester() {
   const { t } = useTranslation();
+
+  useDocumentTitle(t("pageTitles.semesters"))
 
   const [semestersLoading, setSemestersLoading] = useState(true);
   const [semesters, setSemesters] = useState<SemesterData[]>([]);

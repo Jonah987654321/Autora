@@ -1,6 +1,7 @@
 .env
 backend/.tmp/
 plan.txt
+todos.txt
 .vscode/
 docker/mongodb/mongo-keyfile
 data/

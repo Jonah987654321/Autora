@@ -316,10 +316,18 @@
     "list": {
       "addNew": "Neue Vorlesungsmitschrift erstellen",
       "creationFailed": "Erstellen der neuen Vorlesungsmitschrift fehlgeschlagen",
-      "empty": "E scheint als hättest du dir noch keine Notizen gemacht",
+      "empty": "Es scheint als hättest du dir noch keine Notizen gemacht",
       "emptyAction": "Starte produktiv zu sein",
       "summaryOpen": "Noch nicht zusammengefasst",
       "unnamedLecture": "Unbenannte Mitschrift"
     }
+  },
+  "pageTitles": {
+    "course": "Modulansicht",
+    "dashboard": "Dashboard",
+    "editor": "Vorlesungsmitschrift",
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "semesters": "Semesterverwaltung"
   }
 }

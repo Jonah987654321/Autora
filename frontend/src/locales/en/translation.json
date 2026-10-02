@@ -198,11 +198,11 @@
     "detailView": {
       "modules": "Courses",
       "newModule": "Add course",
-      "modulesLoading": "Loading modules...",
-      "noModules": "You haven't created modules for this semester yet.",
+      "modulesLoading": "Loading courses...",
+      "noModules": "You haven't created courses for this semester yet.",
       "deleteDialog": {
         "title": "Delete semester?",
-        "description": "You can not restore a deleted semester. This also deletes all modules in this semester and their content.",
+        "description": "You can not restore a deleted semester. This also deletes all courses in this semester and their content.",
         "target": "You are deleting the following semester: ",
         "confirm": "Delete permanently",
         "cancel": "Cancel"
@@ -321,5 +321,13 @@
       "empty": "No flashcards created yet",
       "create": "Create new"
     }
+  },
+  "pageTitles": {
+    "course": "Module Details",
+    "dashboard": "Dashboard",
+    "editor": "Lecture Note",
+    "login": "Login",
+    "register": "Register",
+    "semesters": "Semester Management"
   }
 }

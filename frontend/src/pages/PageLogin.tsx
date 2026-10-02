@@ -6,10 +6,13 @@ import { NavLink } from "react-router";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { getErrorStatus } from "@/lib/errors";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function PageLogin() {
   const { t } = useTranslation();
   const { login } = useAuth();
+
+  useDocumentTitle(t("pageTitles.login"));
 
   const [email, setEmail] = useState("");
   const [emailInvalid, setEmailInvalid] = useState(false);

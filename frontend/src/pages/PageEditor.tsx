@@ -61,6 +61,7 @@ import { format, isSameDay } from "date-fns";
 import RelativeTimeLabel from "@/components/ui/RelativeTimeLabel";
 import MathInput from "@/components/specific/editor/MathInput";
 import DragHandle from "@tiptap/extension-drag-handle-react";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function PageEditor() {
   const { t } = useTranslation();
@@ -72,6 +73,10 @@ export default function PageEditor() {
     undefined,
   );
   const lastInput = useRef(0);
+  // Set Title
+  useDocumentTitle(
+    `${noteData ? (noteData.title !== "" ? noteData.title : t("notes.list.unnamedLecture")) + " - " : ""}${t("pageTitles.editor")}`,
+  );
   // Indicator wether the summary is being edited or the real content
   const [isSummaryMode, _] = useState(false);
   // Math Input control
@@ -342,20 +347,24 @@ export default function PageEditor() {
 
   // Handle scrolling for outline
   const scrollToHeading = (index: number) => {
-  if (!editor) return;
+    if (!editor) return;
 
-  const headings = editor.view.dom.querySelectorAll<HTMLElement>(
-    ":scope > h1, :scope > h2, :scope > h3",
-  );
-  const el = headings[index];
-  if (!el) return;
+    const headings = editor.view.dom.querySelectorAll<HTMLElement>(
+      ":scope > h1, :scope > h2, :scope > h3",
+    );
+    const el = headings[index];
+    if (!el) return;
 
-  // Cursor on start of heading, without tiptap scrolling
-  const pos = editor.view.posAtDOM(el, 0);
-  editor.chain().focus(null, { scrollIntoView: false }).setTextSelection(pos).run();
+    // Cursor on start of heading, without tiptap scrolling
+    const pos = editor.view.posAtDOM(el, 0);
+    editor
+      .chain()
+      .focus(null, { scrollIntoView: false })
+      .setTextSelection(pos)
+      .run();
 
-  el.scrollIntoView({ behavior: "smooth", block: "start" });
-};
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const headingsList =
     noteData?.content?.content?.filter((e) => e.type === "heading") || [];

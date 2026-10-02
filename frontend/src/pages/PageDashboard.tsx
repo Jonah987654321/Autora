@@ -8,11 +8,14 @@ import {
 } from "@/components/ui/card";
 import { CardActionHeader } from "@/components/ui/cardActionHeader";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { CalendarPlus, CirclePlus, Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function PageDashboard() {
   const { t } = useTranslation();
+
+  useDocumentTitle(t("pageTitles.dashboard"));
 
   return (
     <div className="p-6">

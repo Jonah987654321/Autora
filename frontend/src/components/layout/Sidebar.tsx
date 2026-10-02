@@ -67,7 +67,14 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="p-2 font-bold text-lg">Autora</div>
+        <div className="flex items-center gap-2 p-2">
+          <img
+            src="/logo.png"
+            alt="Autora Logo"
+            className="size-7 object-contain"
+          />
+          <span className="font-bold text-lg">Autora</span>
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
@@ -111,11 +118,9 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={(_) => logout()}
-            >
-                <LogOutIcon />
-                <span>{t("sidebar.logout")}</span>
+            <SidebarMenuButton onClick={(_) => logout()}>
+              <LogOutIcon />
+              <span>{t("sidebar.logout")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

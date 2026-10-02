@@ -6,10 +6,13 @@ import { NavLink } from "react-router";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { getErrorStatus } from "@/lib/errors";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function PageRegister() {
   const { t } = useTranslation();
   const { register } = useAuth();
+
+  useDocumentTitle(t("pageTitles.register"));
 
   const [fullName, setFullName] = useState("");
   const [fullNameInvalid, setFullNameInvalid] = useState(false);
