@@ -69,7 +69,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-2 p-2">
           <img
-            src="/logo.png"
+            src="/logo.svg"
             alt="Autora Logo"
             className="size-7 object-contain"
           />
