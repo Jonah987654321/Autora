@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -83,6 +84,13 @@ func (h *MediaUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Remove created file (discard error as this already is error handling)
 		os.Remove(filePath)
+
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			mw.SetErrorAsJSON(w, "file exceeds size limit", http.StatusRequestEntityTooLarge)
+			return
+		}
+
 		slog.Error("writing file on media upload failed", "error", err)
 		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -96,5 +104,5 @@ func (h *MediaUploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewMediaUploadHandler(authMiddleware mw.Middleware) http.Handler {
-	return mw.Chain(&MediaUploadHandler{}, mw.Logging(), mw.BodyLimit(5*mw.MB), authMiddleware)
+	return mw.Chain(&MediaUploadHandler{}, mw.Logging(), mw.BodyLimit(10*mw.MB), authMiddleware)
 }
