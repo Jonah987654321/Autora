@@ -12,7 +12,10 @@ set +a
 if [[ -n "${DATA_DIR:-}" ]]; then
     mkdir -p "${DATA_DIR}/mongodb" \
              "${DATA_DIR}/caddy_data" \
-             "${DATA_DIR}/caddy_config"
+             "${DATA_DIR}/caddy_config" \
+             "${DATA_DIR}/uploads"
+
+    chmod 777 "${DATA_DIR}/uploads"
 else
     echo "ERROR: DATA_DIR key missing in .env"
     exit 1

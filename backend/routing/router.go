@@ -6,6 +6,7 @@ import (
 	"autora-backend/calendar"
 	"autora-backend/database"
 	"autora-backend/knowledge/notes"
+	"autora-backend/media"
 	"autora-backend/mw"
 	"autora-backend/productivity/tasks"
 	"autora-backend/token"
@@ -85,6 +86,8 @@ func CreateRouter(collections database.AllCollections, jwtService *token.JWTServ
 	router.Handle("DELETE /knowledge/notes/{id}", notes.NewDeleteNoteHandler(authMW, noteDB))
 	router.Handle("GET /knowledge/notes/{id}", notes.NewGetNoteByIDHandler(authMW, noteDB))
 	router.Handle("GET /knowledge/notes/module/{id}", notes.NewGetNotesByModuleIDHandler(authMW, noteDB))
+	// Handle file uploads for embedding images in notes
+	router.Handle("POST /upload", media.NewMediaUploadHandler(authMW))
 
 	return router
 }

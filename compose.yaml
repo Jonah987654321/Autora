@@ -64,6 +64,7 @@ services:
       - ./docker/caddy:/etc/caddy
       - caddy_data:/data
       - caddy_config:/config
+      - media_uploads:/var/www/uploads:ro
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
       # Default to 80 for production, overwrite in dev mode
@@ -94,6 +95,8 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+    volumes:
+      - media_uploads:/app/uploads
   # for development, hot-reload
   backend-dev:
     <<: *backend-template
@@ -106,6 +109,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+      - media_uploads:/app/uploads
 
   # --- Frontend (React) services
   # for production, single-page built application
@@ -147,3 +151,9 @@ volumes:
       type: none
       o: bind
       device: ${DATA_DIR}/caddy_config
+  media_uploads:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR}/uploads
