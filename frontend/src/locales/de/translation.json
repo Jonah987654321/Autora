@@ -306,7 +306,8 @@
         "failed": "Speichern fehlgeschlagen",
         "saved": "Gespeichert",
         "saving": "Speichern..."
-      }
+      },
+      "imageUploadFailed": "Hochladen des Bildes fehlgeschlagen"
     },
     "flashcards": {
       "create": "Neue erstellen",

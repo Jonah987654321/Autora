@@ -36,7 +36,7 @@ import {
   TrailingNode,
   UndoRedo,
 } from "@tiptap/extensions";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { Editor, EditorContent, useEditor } from "@tiptap/react";
 import {
   BookOpenIcon,
   CircleCheck,
@@ -62,6 +62,10 @@ import RelativeTimeLabel from "@/components/ui/RelativeTimeLabel";
 import MathInput from "@/components/specific/editor/MathInput";
 import DragHandle from "@tiptap/extension-drag-handle-react";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import FileHandler from "@tiptap/extension-file-handler";
+import Image from "@tiptap/extension-image";
+import { uploadMedia } from "@/api/media";
+import { toast } from "sonner";
 
 export default function PageEditor() {
   const { t } = useTranslation();
@@ -95,6 +99,72 @@ export default function PageEditor() {
   });
   const openMathInsert = (isBlock: boolean) =>
     setMathDialog({ open: true, isBlock, mode: "insert", latex: "" });
+
+  const handleImageInsert = (
+    editor: Editor,
+    files: File[],
+    dropPos?: number,
+  ) => {
+    files.forEach(async (file) => {
+      // --- Local preview
+      // Generate url
+      const tempUrl = URL.createObjectURL(file);
+      // Insert tmp
+      if (dropPos !== undefined) {
+        editor
+          .chain()
+          .insertContentAt(dropPos, { type: "image", attrs: { src: tempUrl } })
+          .run();
+      } else {
+        editor.chain().focus().setImage({ src: tempUrl }).run();
+      }
+
+      try {
+        const resp = await uploadMedia(file);
+        const finalURL = `/uploads/${resp.fileName}`;
+
+        // Search document for image with the tmp url
+        editor.commands.command(({ tr }) => {
+          let modified = false;
+          editor.state.doc.descendants((node, pos) => {
+            if (node.type.name === "image" && node.attrs.src === tempUrl) {
+              // Update attributes of node (replace src)
+              tr.setNodeMarkup(pos, null, {
+                ...node.attrs,
+                src: finalURL,
+              });
+              modified = true;
+              return false; // Exit condition => node found
+            }
+          });
+          return modified; // Only apply transaction when image was found
+        });
+      } catch (error) {
+        console.error("Image upload failed:", error);
+
+        // Remove placeholder if upload failed
+        editor.commands.command(({ tr }) => {
+          let modified = false;
+          editor.state.doc.descendants((node, pos) => {
+            if (node.type.name === "image" && node.attrs.src === tempUrl) {
+              // Delete node (from start pos to start pos + node-size)
+              tr.delete(pos, pos + node.nodeSize);
+              modified = true;
+              return false;
+            }
+          });
+          return modified;
+        });
+
+        toast.error(t("notes.editor.imageUploadFailed"), {
+          description: t("common.internalServerError"),
+        });
+      } finally {
+        // Prevent memory leaking
+        URL.revokeObjectURL(tempUrl);
+      }
+    });
+  };
 
   // --- Init editor
   // Create lowlight code highlighting
@@ -164,6 +234,32 @@ export default function PageEditor() {
             latex: node.attrs.latex,
             pos,
           }),
+      },
+    }),
+
+    // File handling for embedding images
+    Image.configure({
+      resize: {
+        enabled: true,
+        directions: ["top-right", "bottom-right", "top-left", "bottom-left"],
+        minWidth: 50,
+        minHeight: 50,
+        alwaysPreserveAspectRatio: true,
+      },
+    }),
+    FileHandler.configure({
+      allowedMimeTypes: [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "image/avif",
+      ],
+      onPaste: (editor, files, _) => {
+        handleImageInsert(editor, files);
+      },
+      onDrop: (editor, files, pos) => {
+        handleImageInsert(editor, files, pos);
       },
     }),
   ];

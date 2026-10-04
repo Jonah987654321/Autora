@@ -314,7 +314,8 @@
         "labelPreview": "Preview",
         "buttonInsert": "Insert",
         "buttonUpdate": "Update"
-      }
+      },
+      "imageUploadFailed": "Failed to upload image"
     },
     "flashcards": {
       "title": "Flashcards",
