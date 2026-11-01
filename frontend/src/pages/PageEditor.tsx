@@ -336,6 +336,7 @@ export default function PageEditor() {
 
   // --- Handle saving
   const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
   const [savingFailed, setSavingFailed] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | undefined>(undefined);
   const lastSavedRef = useRef<Date | undefined>(undefined);
@@ -347,6 +348,8 @@ export default function PageEditor() {
   const save = async () => {
     const data = latestNoteData.current;
     if (!data) return;
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
     setIsSaving(true);
     setSavingFailed(false);
     try {
@@ -380,6 +383,7 @@ export default function PageEditor() {
       }, waitTime);
     } finally {
       setIsSaving(false);
+      isSavingRef.current = false;
     }
   };
 
@@ -452,8 +456,6 @@ export default function PageEditor() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault(); // Prevent "Save as html dialog"
-
-        if (inSaveFailRetry.current) return;
         save();
       }
 
@@ -642,6 +644,7 @@ export default function PageEditor() {
                           "border-border border-l-3 truncate text-muted-foreground cursor-pointer hover:text-blue-400 hover:border-blue-400",
                           padMap[e.attrs ? e.attrs.level : 1],
                         )}
+                        title={textContent}
                       >
                         {textContent}
                       </div>
@@ -668,15 +671,21 @@ export default function PageEditor() {
       )}
       <MathInput
         open={mathDialog.open}
-        onOpenChange={(open) => setMathDialog((p) => ({ ...p, open }))}
+        onOpenChange={(open) => {
+          setMathDialog((p) => ({ ...p, open }));
+          if (!open) {
+            editor.chain().focus().run()
+          }
+        }}
         mode={mathDialog.mode}
         initialData={mathDialog.latex}
         onSubmit={(latex) => {
           if (!editor) return;
           const { isBlock, mode, pos } = mathDialog;
           if (mode === "update") {
-            if (isBlock) editor.commands.updateBlockMath({ latex, pos });
-            else editor.commands.updateInlineMath({ latex, pos });
+            const chain = editor.chain().focus();
+            if (isBlock) chain.updateBlockMath({ latex, pos }).run();
+            else chain.updateInlineMath({ latex, pos }).run();
           } else {
             const chain = editor.chain().focus();
             if (isBlock) chain.insertBlockMath({ latex }).run();

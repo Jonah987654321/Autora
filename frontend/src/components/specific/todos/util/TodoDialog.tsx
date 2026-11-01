@@ -314,7 +314,7 @@ export default function TodoDialog({
           {showEditForm ? (
             <>
               <DialogHeader>
-                <DialogTitle>{t("todos.dialog.titleNew")}</DialogTitle>
+                <DialogTitle>{isCreateMode ? t("todos.dialog.titleNew") : t("todos.dialog.titleEdit")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-1.5">

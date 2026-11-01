@@ -85,7 +85,7 @@ export default function TodoList({
           </div>
         </div>
       )}
-      {entries.length === 0 && !loading && !error && (
+      {entries.filter((t) => t.status < TaskStatus.Cancelled).length === 0 && !loading && !error && (
         <div className="flex flex-col items-center justify-center text-muted-foreground mb-3">
           <div>
             <CheckCircle2Icon

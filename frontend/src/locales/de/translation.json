@@ -250,7 +250,8 @@
       },
       "submitEdit": "Speichern",
       "submitNew": "Erstellen",
-      "titleNew": "Neue Aufgabe erstellen"
+      "titleNew": "Neue Aufgabe erstellen",
+      "titleEdit": "Aufgabe bearbeiten"
     },
     "errors": {
       "statusUpdateFailed": "Aktualisieren des Aufgabenstatus fehlgeschlagen"

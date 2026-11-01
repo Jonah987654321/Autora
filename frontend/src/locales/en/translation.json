@@ -61,6 +61,7 @@
     "allDone": "All tasks done",
     "dialog": {
       "titleNew": "Create a new task",
+      "titleEdit": "Edit task",
       "submitNew": "Create",
       "submitEdit": "Save",
       "cancelEdit": "Discard changes",
