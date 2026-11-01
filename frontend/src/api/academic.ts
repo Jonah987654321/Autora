@@ -2,6 +2,7 @@ import type { WeeklyScheduleEntry } from "@/models/module";
 import { refreshClient } from "./client";
 import { format } from "date-fns";
 import type ModuleData from "@/models/module";
+import type SemesterData from "@/models/semester";
 
 export async function loadAllSemesters(signal?: AbortSignal) {
   const response = await refreshClient.get("/academic/semesters", {
@@ -39,6 +40,11 @@ export async function editSemester(
 
 export async function getSemesterByID(id: string) {
   const response = await refreshClient.get(`/academic/semesters/${id}`);
+  return response.data;
+}
+
+export async function getActiveSemester() : Promise<SemesterData> {
+  const response = await refreshClient.get("/academic/semesters/active");
   return response.data;
 }
 

@@ -1,5 +1,7 @@
+import { getActiveSemester } from "@/api/academic";
+import { getOpenTodosForSemester } from "@/api/productivity";
 import { WeekView } from "@/components/specific/calendar";
-import { TodoEntry, TodoList } from "@/components/specific/todo";
+import TodoList from "@/components/specific/todos/display/TodoList";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,13 +11,26 @@ import {
 import { CardActionHeader } from "@/components/ui/cardActionHeader";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import type SemesterData from "@/models/semester";
 import { CalendarPlus, CirclePlus, Settings2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 export default function PageDashboard() {
   const { t } = useTranslation();
-
   useDocumentTitle(t("pageTitles.dashboard"));
+
+  const [activeSemester, setActiveSemester] = useState<SemesterData | undefined>(undefined);
+
+  useEffect(() => {
+    const loadActiveSemester = async () => {
+      // TODO: Error handling, loading state, no active semester handling
+      const data = await getActiveSemester();
+      setActiveSemester(data);
+    };
+
+    loadActiveSemester();
+  }, [])
 
   return (
     <div className="p-6">
@@ -84,10 +99,7 @@ export default function PageDashboard() {
             />
             <CardContent>
               <ScrollArea className="h-75">
-                <TodoList>
-                  <TodoEntry title="Do something" id="ace" />
-                  <TodoEntry title="Do something 2" id="ace2" />
-                </TodoList>
+                {activeSemester && <TodoList fetchEntries={() => getOpenTodosForSemester(activeSemester.id)} />}
               </ScrollArea>
             </CardContent>
           </Card>

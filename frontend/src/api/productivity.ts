@@ -16,6 +16,14 @@ export async function getOpenTodosForModule(moduleID: string) {
   return response.data;
 }
 
+export async function getOpenTodosForSemester(semesterID: string) {
+  const response = await refreshClient.get(
+    `/productivity/tasks/semester/${semesterID}/open`,
+  );
+  return response.data;
+}
+
+
 export async function getSubtasks(taskID: string) {
   const response = await refreshClient.get(
     `/productivity/tasks/${taskID}/subtasks`,
