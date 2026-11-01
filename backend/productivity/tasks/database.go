@@ -1063,6 +1063,87 @@ func (a *MongoTaskActions) GetOpenTaskForModule(ctx context.Context, moduleID, u
 	return tasks, nil
 }
 
+func (a *MongoTaskActions) GetOpenTaskForSemester(ctx context.Context, semesterID, userID string) ([]Task, error) {
+	// Parse IDs to ObjectIDs
+	userObjectId, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert userID to ObjectID: %w", err)
+	}
+	semesterObjectID, err := bson.ObjectIDFromHex(semesterID)
+	if err != nil {
+		return nil, ErrNoSuchSemester
+	}
+
+	dbCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	defer cancel()
+
+	count, err := a.CollectionSemesters.CountDocuments(dbCtx, bson.M{"_id": semesterObjectID, "userID": userObjectId})
+	if err != nil {
+		return nil, fmt.Errorf("failed to check if semester exists: %w", err)
+	}
+	if count != 1 {
+		return nil, ErrNoSuchSemester
+	}
+
+	filter := bson.M{
+		"userID":          userObjectId,
+		"status":          bson.M{"$lt": StatusCancelled},
+		"isDeletedShadow": false,
+		"isTemplate":      false,
+		"parentTask":      nil,
+	}
+
+	pipeline := mongo.Pipeline{
+		// 1. Filter
+		bson.D{{Key: "$match", Value: filter}},
+
+		// 2. Join the Module-Collection
+		bson.D{{Key: "$lookup", Value: bson.D{
+			{Key: "from", Value: a.CollectionModules.Name()},
+			{Key: "localField", Value: "moduleID"},
+			{Key: "foreignField", Value: "_id"},
+			{Key: "as", Value: "moduleDetails"},
+		}}},
+
+		// 3. Filter for given semester id
+		bson.D{{Key: "$match", Value: bson.M{
+			"moduleDetails.semesterID": semesterObjectID,
+		}}},
+
+		// 4. Temporary helper field to sort empty dueDate last
+		bson.D{{Key: "$addFields", Value: bson.D{
+			{Key: "sortWeight", Value: bson.D{
+				{Key: "$cond", Value: bson.A{
+					bson.D{{Key: "$eq", Value: bson.A{bson.D{{Key: "$type", Value: "$dueDate"}}, "date"}}},
+					0, // 0 -> dueDate exists
+					1, // 1 -> no dueDate
+				}},
+			}},
+		}}},
+
+		// 5. Sort
+		bson.D{{Key: "$sort", Value: bson.D{
+			{Key: "sortWeight", Value: 1},
+			{Key: "dueDate", Value: 1},
+		}}},
+
+		// 6. Remove helper field from result
+		bson.D{{Key: "$unset", Value: bson.A{"sortWeight", "moduleDetails"}}},
+	}
+
+	tasks := []Task{}
+	res, err := a.CollectionTasks.Aggregate(dbCtx, pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch tasks: %w", err)
+	}
+	err = res.All(dbCtx, &tasks)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode tasks: %w", err)
+	}
+
+	return tasks, nil
+}
+
 func (a *MongoTaskActions) GetSubtasks(ctx context.Context, parentID, userID string) ([]Task, error) {
 	// Parse IDs to ObjectIDs
 	userObjectId, err := bson.ObjectIDFromHex(userID)

@@ -29,8 +29,9 @@ func newBadOperationErr(msg string) error {
 
 var (
 	// Not-found errors
-	ErrNoSuchModule = fmt.Errorf("%w: module", ErrNotFound)
-	ErrNoSuchTask   = fmt.Errorf("%w: task", ErrNotFound)
+	ErrNoSuchModule   = fmt.Errorf("%w: module", ErrNotFound)
+	ErrNoSuchTask     = fmt.Errorf("%w: task", ErrNotFound)
+	ErrNoSuchSemester = fmt.Errorf("%w: semester", ErrNotFound)
 
 	// Validation errors
 	ErrTaskTitleEmpty       = newValidationErr("title cannot be empty")

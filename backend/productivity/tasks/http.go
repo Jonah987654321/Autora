@@ -16,6 +16,7 @@ type TaskActions interface {
 	UpdateTask(ctx context.Context, taskID, userID string, req TaskUpdateRequest) (*Task, error)
 	DeleteTask(ctx context.Context, taskID, userID string, seriesUpdate int, overwriteModified bool) error
 	GetOpenTaskForModule(ctx context.Context, moduleID, userID string) ([]Task, error)
+	GetOpenTaskForSemester(ctx context.Context, semesterID, userID string) ([]Task, error)
 	GetSubtasks(ctx context.Context, parentID, userID string) ([]Task, error)
 }
 
@@ -202,6 +203,37 @@ func (h *GetOpenTaskForModuleHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 }
 func NewGetOpenTaskForModuleHandler(authMiddleware mw.Middleware, actions TaskActions) http.Handler {
 	handler := GetOpenTaskForModuleHandler{
+		actions: actions,
+	}
+	return mw.CoreChain(&handler, authMiddleware)
+}
+
+// --- Handler for getting open tasks for semester
+type GetOpenTaskForSemesterHandler struct {
+	actions TaskActions
+}
+
+func (h *GetOpenTaskForSemesterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	semesterID := r.PathValue("id")
+
+	ctx := r.Context()
+	tasks, err := h.actions.GetOpenTaskForSemester(ctx, semesterID, token.GetUserIDFromContext(ctx))
+	if err != nil {
+		if errors.Is(err, ErrNoSuchModule) {
+			mw.SetErrorAsJSON(w, "semester not found", http.StatusNotFound)
+			return
+		}
+
+		slog.Error("fetching open tasks for semester failed", "error", err)
+		mw.SetErrorAsJSON(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tasks)
+}
+func NewGetOpenTaskForSemesterHandler(authMiddleware mw.Middleware, actions TaskActions) http.Handler {
+	handler := GetOpenTaskForSemesterHandler{
 		actions: actions,
 	}
 	return mw.CoreChain(&handler, authMiddleware)
